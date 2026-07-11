@@ -46,7 +46,9 @@ apt-get update -qq
 apt-get install -y -qq sudo git ca-certificates >/dev/null
 id tester >/dev/null 2>&1 || useradd -m -s /bin/bash tester
 echo "tester ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/tester
-git config --global --add safe.directory /debspin
+# The bind-mounted /debspin is owned by the host uid; whitelist it for git
+# (root runs ansible-pull). Throwaway container, so '*' is fine.
+git config --system --add safe.directory '*'
 EOF
 )
 

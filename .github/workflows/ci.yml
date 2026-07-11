@@ -35,4 +35,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Bootstrap headless, end-to-end
-        run: ./test/test.sh --systemd headless
+        run: |
+          # checkout leaves a detached HEAD; give ansible-pull a real branch
+          # to resolve (file:///debspin -C <branch>).
+          git checkout -B ci-test
+          ./test/test.sh --systemd headless
