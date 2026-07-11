@@ -6,6 +6,27 @@ install_type: lan           # lan | cloud  (affects firewall/samba/ssh posture)
 timezone: Asia/Dubai
 locale: en_IN.UTF-8
 
+# ===================================================================
+# FLEET-MANAGED AGENT CONFIG — the core of debspin.
+# Edit here, `git push`, every machine converges on next pull.
+# NO SECRETS: MCP keys use ${ENV_VAR} refs, populated per-device.
+# ===================================================================
+# Skills → dirs under roles/agent-config/files/skills/  →  ~/.claude/skills/
+claude_skills:
+  - example-skill
+
+# MCP servers (Claude Code, user scope). Keys via ${VAR} refs only.
+claude_mcp_servers:
+  - name: fetch                       # keyless demo server
+    config: { type: stdio, command: npx, args: ["-y", "@modelcontextprotocol/server-fetch"] }
+  # - name: github                    # example WITH a secret, kept out of repo:
+  #   config: { type: http, url: "https://api.githubcopilot.com/mcp/",
+  #             headers: { Authorization: "Bearer ${GITHUB_TOKEN}" } }
+
+# Plugins: marketplaces + enabled map (Claude Code settings.json). Empty by default.
+claude_marketplaces: {}              # e.g. { "my-org": { source: { source: github, repo: "me/plugins" } } }
+claude_plugins: {}                   # e.g. { "commit-commands@my-org": true }
+
 # xrdp: end a disconnected GUI session after this many seconds to free desktop
 # RAM (0 = never, for sticky workstations). Safe — real work runs as systemd
 # services (linger) or tmux, so this drops only the Xfce shell, never your work.

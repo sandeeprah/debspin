@@ -1,8 +1,18 @@
 # debspin
 
-**A Debian customization layer.** One command turns a stock Debian netinst into a
-polished, consistent machine — a dark **Xfce desktop over xrdp** — then keeps
-itself tidy automatically. No secrets, no accounts, nothing to sign into.
+**A Debian customization layer whose core job is fleet-wide agent config —
+skills, MCP servers, and plugins — kept identical across every device.** It also
+sets up the substrate: a dark **Xfce desktop over xrdp**, runtimes, and the
+coding agents. Edit once, `git push`, and every machine converges. No secrets.
+
+### The core: manage skills + MCP + plugins across all machines
+Defined centrally in `group_vars/all.yml`, deployed by the **`agent-config`** role:
+- **Skills** → synced to `~/.claude/skills/` (static files, auto-discovered)
+- **MCP servers** → applied at user scope via `claude mcp add-json`; **keys stay
+  out** of the repo using `${ENV_VAR}` refs populated per device
+- **Plugins** → marketplaces + enabled map in `settings.json`, installed once
+
+Add an MCP server to your whole fleet = a one-line edit + `git push`.
 
 ```bash
 # on a fresh Debian — interactive, resource-aware wizard:

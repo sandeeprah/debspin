@@ -1,0 +1,79 @@
+# agent-config — debspin's core: fleet-wide SKILLS + MCP servers + PLUGINS for
+# Claude Code (user scope). Secret-free: MCP keys are ${ENV_VAR} refs populated
+# per-device. Only runs where Claude Code is installed.
+- name: agent-config — Claude Code
+  when: agents.claude_code | default(false) | bool
+  vars:
+    home: "/home/{{ target_user }}"
+  block:
+
+    # ---- SKILLS (fully static: drop dirs, auto-discovered, no CLI) ----
+    - name: Ensure ~/.claude/skills exists
+      ansible.builtin.file:
+        path: "{{ home }}/.claude/skills"
+        state: directory
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: "0755"
+      become: true
+
+    - name: Deploy managed skills
+      ansible.builtin.copy:
+        src: "skills/{{ item }}/"
+        dest: "{{ home }}/.claude/skills/{{ item }}/"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: "0644"
+      loop: "{{ claude_skills | default([]) }}"
+      become: true
+
+    # ---- MCP SERVERS (user scope, via `claude mcp add-json` — no clobber) ----
+    - name: Apply managed MCP servers (Claude Code, user scope)
+      ansible.builtin.shell: |
+        export NVM_DIR="$HOME/.config/nvm"; . "$NVM_DIR/nvm.sh" 2>/dev/null || true
+        export PATH="$HOME/.local/bin:$PATH"
+        claude mcp remove {{ item.name | quote }} -s user >/dev/null 2>&1 || true
+        claude mcp add-json {{ item.name | quote }} {{ (item.config | to_json) | quote }} -s user
+      args:
+        executable: /bin/bash
+      loop: "{{ claude_mcp_servers | default([]) }}"
+      become: true
+      become_user: "{{ target_user }}"
+      environment:
+        HOME: "{{ home }}"
+      changed_when: false
+
+    # ---- PLUGINS (static marketplaces + enabled map; then install once) ----
+    - name: Read existing Claude settings.json (if any)
+      ansible.builtin.slurp:
+        src: "{{ home }}/.claude/settings.json"
+      register: _cs
+      failed_when: false
+      become: true
+
+    - name: Merge marketplaces + enabledPlugins into settings.json
+      when: (claude_marketplaces | default({})) or (claude_plugins | default({}))
+      ansible.builtin.copy:
+        dest: "{{ home }}/.claude/settings.json"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: "0644"
+        content: >-
+          {{ ((_cs.content | b64decode | from_json) if _cs.content is defined else {})
+             | combine({'extraKnownMarketplaces': claude_marketplaces | default({}),
+                        'enabledPlugins': claude_plugins | default({})}) | to_nice_json }}
+      become: true
+
+    - name: Install enabled plugins (one-time per machine)
+      ansible.builtin.shell: |
+        export NVM_DIR="$HOME/.config/nvm"; . "$NVM_DIR/nvm.sh" 2>/dev/null || true
+        export PATH="$HOME/.local/bin:$PATH"
+        claude plugin install {{ item | quote }} --scope user 2>&1 | grep -qi 'already' && exit 0 || true
+      args:
+        executable: /bin/bash
+      loop: "{{ (claude_plugins | default({})).keys() | list }}"
+      become: true
+      become_user: "{{ target_user }}"
+      environment:
+        HOME: "{{ home }}"
+      changed_when: false

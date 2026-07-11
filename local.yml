@@ -58,6 +58,9 @@
     - role: vscode
       when: agents.vscode | default(false) | bool
 
+    # --- the core: fleet-wide skills + MCP servers + plugins ---
+    - role: agent-config
+
     # --- optional extras: run only if the feature is on AND the box can afford it ---
     - role: cli-tools
       when: features.cli_tools | default(false) | bool
