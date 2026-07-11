@@ -59,6 +59,27 @@
     - xfce4-panel.xml      # stock top panel + centered dock
   become: true
 
+# The panel's dock launchers reference .desktop files by id; ship them, or the
+# dock shows dead green rockets (xfce4-panel's default launcher icon).
+- name: Deploy the dock launcher .desktop files
+  ansible.builtin.copy:
+    src: panel/
+    dest: "/home/{{ target_user }}/.config/xfce4/panel/"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+    directory_mode: "0755"
+  become: true
+
+# xfce4-panel.xml was exported on the author's box with a hardcoded home; point
+# the directory menu at the actual user.
+- name: Fix the panel directory-menu path for this user
+  ansible.builtin.replace:
+    path: "/home/{{ target_user }}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml"
+    regexp: '/home/sandeep\b'
+    replace: "/home/{{ target_user }}"
+  become: true
+
 - name: Ensure the user's autostart dir exists
   ansible.builtin.file:
     path: "/home/{{ target_user }}/.config/autostart"
