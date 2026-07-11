@@ -1,0 +1,32 @@
+# chrome — Google Chrome (desktop/lean profiles). Preferred browser.
+- name: Google signing key
+  ansible.builtin.get_url:
+    url: https://dl.google.com/linux/linux_signing_key.pub
+    dest: /usr/share/keyrings/google-chrome.asc
+    mode: "0644"
+  become: true
+
+- name: Google Chrome apt repo
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.asc] http://dl.google.com/linux/chrome/deb/ stable main"
+    filename: google-chrome
+    state: present
+  become: true
+
+- name: Install google-chrome-stable
+  ansible.builtin.apt:
+    name: google-chrome-stable
+    state: present
+    update_cache: true
+  become: true
+
+# Chrome can misbehave with GPU accel over xrdp; a sane default flag.
+- name: Chrome flags for xrdp (disable GPU)
+  ansible.builtin.copy:
+    dest: "/home/{{ target_user }}/.config/chrome-flags.conf"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+    content: |
+      --disable-gpu
+  become: true

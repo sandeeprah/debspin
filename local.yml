@@ -19,6 +19,14 @@
       ansible.builtin.debug:
         msg: "debspin converging '{{ ansible_hostname }}' as profile='{{ profile }}' (user={{ target_user }}, laptop={{ is_laptop }})"
 
+    # Resource affordability report — warn on any requested extra the box can't afford.
+    - name: Resource report
+      ansible.builtin.debug:
+        msg: >-
+          RAM={{ ansible_memtotal_mb }}MB, disk_free={{ (ansible_mounts | selectattr('mount','equalto','/') | map(attribute='size_available') | first / 1048576) | int }}MB, cpus={{ ansible_processor_vcpus }}.
+          Chrome {{ 'OK' if ansible_memtotal_mb|int >= min_mem_chrome_mb else 'TOO SMALL' }};
+          Docker {{ 'OK' if ansible_memtotal_mb|int >= min_mem_docker_mb else 'TOO SMALL' }}.
+
   roles:
     - role: base                                                    # always
 
@@ -36,3 +44,20 @@
 
     - role: runtimes                                              # Python (uv) + Node (nvm)
     - role: opencode                                             # open-source coding agent (keyless / interactive auth)
+
+    # --- optional extras: run only if the feature is on AND the box can afford it ---
+    - role: cli-tools
+      when: features.cli_tools | default(false) | bool
+    - role: auto-maintenance
+      when: features.auto_maintenance | default(false) | bool
+    - role: mosh
+      when: features.mosh | default(false) | bool
+    - role: chrome
+      when:
+        - features.chrome | default(false) | bool
+        - profile != 'headless'
+        - (ansible_memtotal_mb | int) >= (min_mem_chrome_mb | int)
+    - role: docker
+      when:
+        - features.docker | default(false) | bool
+        - (ansible_memtotal_mb | int) >= (min_mem_docker_mb | int)

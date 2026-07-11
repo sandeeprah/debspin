@@ -5,11 +5,16 @@ polished, consistent machine — a dark **Xfce desktop over xrdp** — then keep
 itself tidy automatically. No secrets, no accounts, nothing to sign into.
 
 ```bash
-# on a fresh Debian (LAN box or cloud VM):
-curl -fsSL https://raw.githubusercontent.com/sandeeprah/debspin/main/bootstrap.sh | bash -s -- desktop
+# on a fresh Debian — interactive, resource-aware wizard:
+curl -fsSL https://raw.githubusercontent.com/sandeeprah/debspin/main/bootstrap.sh | bash
+
+# or non-interactive with an explicit profile:
+curl -fsSL https://raw.githubusercontent.com/sandeeprah/debspin/main/bootstrap.sh | bash -s -- headless
 ```
 
-Last word = the **profile**. Re-run anytime to update; drift self-heals.
+The wizard detects the machine (RAM/CPU/disk), **recommends a profile**, and only
+offers extras the box **can afford** (e.g. Docker needs ≥3.5 GB, Chrome ≥2.8 GB).
+Your answers are saved to `/etc/debspin/host.yml`; re-run to update, drift self-heals.
 
 ---
 
@@ -66,8 +71,20 @@ debspin/
    ├─ ssh-server/        # hardened, key-only on cloud
    ├─ tailscale/         # optional mesh reach (interactive `tailscale up`)
    ├─ runtimes/          # Python (uv) + Node (nvm, XDG path)
-   └─ opencode/          # open-source coding agent (keyless / `opencode auth login`)
+   ├─ opencode/          # open-source coding agent (keyless / `opencode auth login`)
+   └─ (optional, wizard-selected + resource-gated:)
+      cli-tools/         # fzf, ripgrep, bat, eza, zoxide, btop, delta + aliases
+      auto-maintenance/  # unattended-upgrades; fail2ban+ufw on cloud
+      mosh/              # resilient SSH
+      chrome/            # Google Chrome (needs ≥2.8 GB)
+      docker/            # containers (needs ≥3.5 GB RAM, ≥4 GB disk)
 ```
+
+## Optional extras (chosen by the wizard, gated by resources)
+The installer only offers what the box can run, and the playbook double-checks
+with `min_mem_*` floors — a requested extra is **skipped with a warning** if the
+machine is too small. Toggle later by editing `features:` in `/etc/debspin/host.yml`
+and running `sudo systemctl start debspin.service`.
 
 ## No secrets
 This repo contains **no credentials, keys, or accounts** — it's OS + desktop +

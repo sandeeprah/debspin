@@ -1,0 +1,14 @@
+# mosh — resilient remote shell (survives flaky networks, sleep, roaming).
+- name: Install mosh
+  ansible.builtin.apt:
+    name: mosh
+    state: present
+    install_recommends: no
+  become: true
+
+# mosh uses UDP 60000-61000. On cloud+ufw, open it.
+- name: Open mosh UDP ports on cloud (ufw present)
+  when: (install_type | default('lan')) == 'cloud'
+  ansible.builtin.shell: ufw allow 60000:61000/udp || true
+  become: true
+  changed_when: false

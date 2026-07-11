@@ -10,3 +10,18 @@ locale: en_IN.UTF-8
 # RAM (0 = never, for sticky workstations). Safe — real work runs as systemd
 # services (linger) or tmux, so this drops only the Xfce shell, never your work.
 xrdp_disconnected_timeout: 600     # 10 min grace; survives brief network blips
+
+# Optional extras — chosen interactively by bootstrap (written to
+# /etc/debspin/host.yml). Default off so a plain run stays minimal.
+features:
+  cli_tools: false
+  auto_maintenance: false
+  mosh: false
+  chrome: false
+  docker: false
+
+# Resource floors — a role is skipped (with a warning) if the box is under these,
+# even if the feature was requested. Belt-and-braces on top of the wizard.
+min_mem_chrome_mb: 2800
+min_mem_docker_mb: 3500
+min_disk_docker_mb: 4000
