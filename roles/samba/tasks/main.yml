@@ -1,0 +1,74 @@
+# samba — LAN name resolution + file sharing.
+#   * nmbd  → Windows resolves this box by NAME (`\\ACERSPIN`, `mstsc /v:ACERSPIN`)
+#   * wsdd  → Windows 10/11 WS-Discovery (they ship with NetBIOS browsing off),
+#             so it also shows up under "Network"
+#   * smbd  → an authenticated share of the user's home + a shared folder
+# No password is stored in the repo — set it once after install with
+#   sudo smbpasswd -a <user>
+# LAN profiles only (see local.yml): NetBIOS/WSD are broadcast, pointless and a
+# needless surface on a cloud box.
+- name: Install samba (smbd/nmbd) + wsdd (WS-Discovery)
+  ansible.builtin.apt:
+    name:
+      - samba
+      - wsdd
+    state: present
+    install_recommends: no
+  become: true
+
+- name: Create the shared folder
+  ansible.builtin.file:
+    path: /srv/samba/share
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "2775"
+  become: true
+
+- name: Configure samba (name resolution + home + shared folder)
+  ansible.builtin.copy:
+    dest: /etc/samba/smb.conf
+    mode: "0644"
+    content: |
+      # Managed by debspin (samba role).
+      [global]
+         workgroup = WORKGROUP
+         netbios name = {{ ansible_hostname | upper }}
+         server role = standalone server
+         disable netbios = no
+         map to guest = never
+         server min protocol = SMB2
+
+      [homes]
+         comment = Home Directory
+         browseable = no
+         read only = no
+         valid users = %S
+
+      [share]
+         comment = debspin shared folder
+         path = /srv/samba/share
+         browseable = yes
+         read only = no
+         valid users = {{ target_user }}
+         create mask = 0664
+         directory mask = 2775
+  become: true
+  notify:
+    - restart nmbd
+    - restart smbd
+
+- name: Enable + start smbd, nmbd, wsdd
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - smbd
+    - nmbd
+    - wsdd
+  become: true
+
+- name: Reminder — set the samba password once (no secret is stored in the repo)
+  ansible.builtin.debug:
+    msg: "Run 'sudo smbpasswd -a {{ target_user }}' once to enable the \\\\{{ ansible_hostname | upper }}\\{{ target_user }} and \\share access."

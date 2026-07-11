@@ -1,0 +1,12 @@
+# Reload the name/file services when smb.conf changes.
+- name: restart nmbd
+  ansible.builtin.systemd:
+    name: nmbd
+    state: restarted
+  become: true
+
+- name: restart smbd
+  ansible.builtin.systemd:
+    name: smbd
+    state: restarted
+  become: true
