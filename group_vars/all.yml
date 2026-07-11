@@ -11,7 +11,11 @@ locale: en_IN.UTF-8
 # Edit here, `git push`, every machine converges on next pull.
 # NO SECRETS: MCP keys use ${ENV_VAR} refs, populated per-device.
 # ===================================================================
-# Skills → dirs under roles/agent-config/files/skills/  →  ~/.claude/skills/
+# KEEP SKILLS CURATED AND FEW. A handful of focused skills route far better than
+# hundreds — 1000+ bloats context (every skill's description is always loaded)
+# and degrades selection. Do NOT bulk-vendor aggregator lists.
+#
+# Curated local set (bundled in this repo, reviewed):
 claude_skills:
   - brainstorm          # explore options before committing
   - plan-feature        # request → ordered, codebase-grounded plan
@@ -19,6 +23,11 @@ claude_skills:
   - write-tests         # behavior/edge/failure tests in the repo's style
   - code-review         # correctness/security/simplicity/perf, severity-ranked
   - debug               # reproduce → isolate → root-cause → fix → verify
+
+# OPT-IN: git-vendor ONE specific, reviewed quality repo (cloned + auto-updated,
+# its SKILL.md dirs symlinked in). Leave empty unless you want it; never add many.
+claude_skill_repos: []
+#   - https://github.com/anthropics/skills   # official — review its contents first
 
 # MCP servers (Claude Code, user scope). Keys via ${VAR} refs only.
 claude_mcp_servers:

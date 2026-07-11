@@ -27,6 +27,30 @@
       loop: "{{ claude_skills | default([]) }}"
       become: true
 
+    # OPT-IN: git-vendor specific quality skill repos (keep few — see group_vars note)
+    - name: Vendor skill repos (clone/update)
+      ansible.builtin.git:
+        repo: "{{ item }}"
+        dest: "{{ home }}/.claude/skill-sources/{{ item | basename }}"
+        depth: 1
+        force: true
+      loop: "{{ claude_skill_repos | default([]) }}"
+      become: true
+      become_user: "{{ target_user }}"
+      when: claude_skill_repos | default([]) | length > 0
+
+    - name: Symlink vendored SKILL.md dirs into ~/.claude/skills
+      ansible.builtin.shell: |
+        find "$HOME/.claude/skill-sources" -name SKILL.md -printf '%h\n' 2>/dev/null | while read -r d; do
+          ln -sfn "$d" "$HOME/.claude/skills/$(basename "$d")"
+        done
+      args: { executable: /bin/bash }
+      become: true
+      become_user: "{{ target_user }}"
+      environment: { HOME: "{{ home }}" }
+      when: claude_skill_repos | default([]) | length > 0
+      changed_when: false
+
     - name: Apply MCP servers (Claude, user scope; ${VAR} key refs)
       ansible.builtin.shell: |
         export NVM_DIR="$HOME/.config/nvm"; . "$NVM_DIR/nvm.sh" 2>/dev/null || true
