@@ -31,6 +31,49 @@ Your answers are saved to `/etc/debspin/host.yml`; re-run to update, drift self-
 
 ---
 
+## Getting started on a fresh Debian
+
+### 1. Install Debian minimal — skip the GUI
+At the installer's **Software selection (tasksel)** screen:
+- ✅ keep **SSH server** + **standard system utilities**
+- ❌ **uncheck every desktop environment** (no GNOME/Xfce there)
+
+Let debspin install Xfce with the curated config — the desktop should come from
+the repo, not installer clicks (reproducible, no conflicts, no wasted DE).
+
+### 2. Log in as your user (not root) and check prerequisites
+```bash
+sudo -v && command -v curl
+```
+- **Both succeed** → skip to step 4.
+- **`sudo` errors or `curl` missing** → do step 3 (common on a minimal netinst
+  where you set a root password). *Cloud VMs (DO/Hetzner) already have both — skip step 3.*
+
+### 3. One-time prep (only if step 2 failed)
+```bash
+su -                                    # become root (enter the ROOT password)
+apt update && apt install -y sudo curl  # install missing tools
+usermod -aG sudo YOURUSERNAME           # add your user to sudo
+exit                                    # back to your user
+```
+If you just added yourself to `sudo`, apply it without re-login: `newgrp sudo`.
+
+### 4. Run debspin
+```bash
+curl -fsSL https://raw.githubusercontent.com/sandeeprah/debspin/main/bootstrap.sh | bash
+```
+Answer the wizard (profile, extras, agents). It converges and installs the
+self-tidy timer.
+
+### 5. After it finishes
+- **desktop / lean-desktop** → RDP in from Windows (by IP, or by name over
+  Tailscale after `sudo tailscale up`).
+- **headless** → SSH only.
+- **Update now:** `sudo systemctl start debspin.service` · **change choices:** edit
+  `/etc/debspin/host.yml` then re-run that.
+
+---
+
 ## How it stays tidy automatically (least maintenance)
 `bootstrap.sh` installs **ansible-pull** + a **systemd timer**. Each machine then
 periodically pulls this repo and re-applies itself:
