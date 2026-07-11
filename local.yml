@@ -23,7 +23,7 @@
     - name: Resource report
       ansible.builtin.debug:
         msg: >-
-          RAM={{ ansible_memtotal_mb }}MB, disk_free={{ (ansible_mounts | selectattr('mount','equalto','/') | map(attribute='size_available') | first / 1048576) | int }}MB, cpus={{ ansible_processor_vcpus }}.
+          RAM={{ ansible_memtotal_mb }}MB, disk_free={{ ((((ansible_mounts | default([]) | selectattr('mount','equalto','/') | map(attribute='size_available') | list) + [0]) | first) / 1048576) | int }}MB, cpus={{ ansible_processor_vcpus }}.
           Chrome {{ 'OK' if ansible_memtotal_mb|int >= min_mem_chrome_mb else 'TOO SMALL' }};
           Docker {{ 'OK' if ansible_memtotal_mb|int >= min_mem_docker_mb else 'TOO SMALL' }}.
 
