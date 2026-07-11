@@ -13,6 +13,14 @@ log(){ printf '\n\033[1;36m[debspin]\033[0m %s\n' "$*"; }
 [ -f /etc/debian_version ] || { echo "debspin is for Debian only."; exit 1; }
 [ "$(id -u)" -eq 0 ] && { echo "Run as your normal user (it sudos as needed)."; exit 1; }
 
+# Ansible refuses to run without a UTF-8 locale, but minimal netinst images often
+# ship none (detected as ISO8859-1/POSIX). Fall back to C.UTF-8 — always present in
+# glibc, no locale-gen needed — unless a UTF-8 locale is already set.
+case "${LC_ALL:-${LANG:-}}" in
+  *[Uu][Tt][Ff]-8 | *[Uu][Tt][Ff]8) ;;                # already UTF-8, leave it
+  *) export LC_ALL=C.UTF-8 LANG=C.UTF-8 ;;
+esac
+
 log "Installing prerequisites (git, ansible, whiptail)…"
 sudo apt-get update -qq
 sudo apt-get install -y --no-install-recommends git ansible whiptail >/dev/null

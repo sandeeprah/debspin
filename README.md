@@ -52,11 +52,20 @@ sudo -v && command -v curl
 ### 3. One-time prep (only if step 2 failed)
 ```bash
 su -                                    # become root (enter the ROOT password)
+
+# If 'apt install curl' fails with "Package 'curl' has no installation candidate",
+# your apt sources still point at the install CD/USB. Point them at an online
+# mirror first (trixie = Debian 13; use 'bookworm' for Debian 12):
+echo "deb http://deb.debian.org/debian trixie main" > /etc/apt/sources.list
+
 apt update && apt install -y sudo curl  # install missing tools
 usermod -aG sudo YOURUSERNAME           # add your user to sudo
 exit                                    # back to your user
 ```
 If you just added yourself to `sudo`, apply it without re-login: `newgrp sudo`.
+
+> **Tip:** paste each line separately. A wrapped one-liner can split mid-command
+> (e.g. `apt install curl` breaking off to run as the coreutils `install`).
 
 ### 4. Run debspin
 ```bash
@@ -71,6 +80,13 @@ self-tidy timer.
 - **headless** → SSH only.
 - **Update now:** `sudo systemctl start debspin.service` · **change choices:** edit
   `/etc/debspin/host.yml` then re-run that.
+
+### Troubleshooting
+- **`Ansible requires the locale encoding to be UTF-8; Detected ISO8859-1`** —
+  `bootstrap.sh` now sets `C.UTF-8` itself, so this only bites a stale cached copy.
+  Fix the shell and re-run: `export LC_ALL=C.UTF-8 LANG=C.UTF-8`.
+- **`curl: command not found` / `curl has no installation candidate`** — see step 3
+  (set an online apt mirror, then `apt install curl`).
 
 ---
 
