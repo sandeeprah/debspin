@@ -6,8 +6,12 @@ FROM debian:13
 ENV container=docker
 ENV DEBIAN_FRONTEND=noninteractive
 
+# dbus + libpam-systemd so systemd-logind comes up — `loginctl enable-linger`
+# (the base role) needs a live system bus, else "Failed to connect to system
+# scope bus". A real Debian box has these; a bare image doesn't.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends systemd systemd-sysv sudo git ca-certificates \
+ && apt-get install -y --no-install-recommends \
+      systemd systemd-sysv dbus libpam-systemd sudo git ca-certificates \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
