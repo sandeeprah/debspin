@@ -1,0 +1,55 @@
+# opencode — open-source, provider-agnostic terminal coding agent for the
+# remote boxes. Points at FREE APIs (OpenRouter free / Groq) or a shared Ollama
+# endpoint — NOT the subscription agents (those stay on the Windows desktop).
+- name: Install opencode (standalone binary; no Node needed)
+  ansible.builtin.shell: |
+    set -e
+    curl -fsSL https://opencode.ai/install | bash
+  args:
+    creates: "/home/{{ target_user }}/.opencode/bin/opencode"
+  become: true
+  become_user: "{{ target_user }}"
+  environment:
+    HOME: "/home/{{ target_user }}"
+
+- name: Ensure opencode config dir
+  ansible.builtin.file:
+    path: "/home/{{ target_user }}/.config/opencode"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0755"
+  become: true
+
+# Provider config. Default points at a shared Ollama endpoint (e.g. the i7 over
+# Tailscale); switch opencode_provider to 'openrouter' to use free API models.
+# The API key (if any) comes from Bitwarden in the one-time secrets play, NOT here.
+- name: Deploy opencode config (model provider)
+  ansible.builtin.copy:
+    dest: "/home/{{ target_user }}/.config/opencode/opencode.json"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+    content: |
+      {
+        "$schema": "https://opencode.ai/config.json",
+        "model": "{{ opencode_model | default('ollama/qwen2.5-coder:7b') }}",
+        "provider": {
+          "ollama": {
+            "npm": "@ai-sdk/openai-compatible",
+            "options": { "baseURL": "{{ opencode_ollama_url | default('http://i7.tailnet:11434/v1') }}" }
+          }
+        }
+      }
+  become: true
+
+# TODO options:
+#  - Use free APIs instead: set opencode_provider=openrouter and put
+#    OPENROUTER_API_KEY in the env (from Bitwarden, via the secrets play).
+#  - `opencode auth login` (interactive) also works per-user.
+- name: Note
+  ansible.builtin.debug:
+    msg: >-
+      opencode installed. Default model = {{ opencode_model | default('ollama/qwen2.5-coder:7b') }}
+      via {{ opencode_ollama_url | default('http://i7.tailnet:11434/v1') }}.
+      Point opencode_ollama_url at your shared Ollama, or switch to OpenRouter free.

@@ -35,4 +35,4 @@
       when: is_laptop | bool
 
     - role: runtimes                                              # node/uv
-    - role: agents                                                # claude/codex/opencode/agy-cli
+    - role: opencode                                             # open-source coding agent (free APIs / Ollama)
