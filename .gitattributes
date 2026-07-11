@@ -1,0 +1,7 @@
+# Shell scripts and container/CI files must stay LF — CRLF breaks them on Linux
+# (e.g. "/usr/bin/env bash^M: bad interpreter").
+*.sh            text eol=lf
+bootstrap.sh    text eol=lf
+Dockerfile*     text eol=lf
+*.yml           text eol=lf
+Vagrantfile     text eol=lf
