@@ -13,8 +13,21 @@
       - greybird-gtk-theme        # Greybird-dark: GTK + xfwm4 borders
       - papirus-icon-theme        # Papirus-Dark icons
       - fonts-dejavu
+      # Desktop plumbing that `install_recommends: no` would otherwise strip.
+      # Without these the desktop comes up half-baked over xrdp: generic
+      # (gearwheel/rocket) icons, no Thunar home/trash, no user folders.
+      - librsvg2-common           # SVG gdk-pixbuf loader — Papirus is SVG; without it, icons fall back to generic
+      - gvfs                      # Thunar: home, trash, mounts, network
+      - gvfs-backends
+      - tumbler                   # thumbnails
+      - xdg-user-dirs             # Home/Desktop/Documents/... exist
+      - xdg-user-dirs-gtk
+      - shared-mime-info          # mime DB (icon/thumbnail lookup)
+      - libgtk-3-bin              # gtk-update-icon-cache
+      - dbus-x11                  # dbus-launch / session-bus helpers
+      - adwaita-icon-theme        # sane fallback icon set
     state: present
-    install_recommends: no
+    install_recommends: no        # kept off (so xscreensaver/light-locker aren't pulled back); deps listed explicitly above
   become: true
 
 - name: Remove things that misbehave over xrdp (screensaver/locker)
