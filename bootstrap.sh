@@ -5,7 +5,7 @@
 set -euo pipefail
 
 PROFILE="${1:-desktop}"
-REPO_URL="${DEBSPIN_REPO:-https://github.com/CHANGE-ME/debspin.git}"
+REPO_URL="${DEBSPIN_REPO:-https://github.com/sandeeprah/debspin.git}"
 BRANCH="${DEBSPIN_BRANCH:-main}"
 INTERVAL="${DEBSPIN_INTERVAL:-4h}"     # how often to self-converge
 

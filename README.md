@@ -6,7 +6,7 @@ xrdp, coding agents, and access tooling — then keeps itself tidy automatically
 
 ```bash
 # on a fresh Debian (LAN box or cloud VM):
-curl -fsSL https://raw.githubusercontent.com/<you>/debspin/main/bootstrap.sh | bash -s -- desktop
+curl -fsSL https://raw.githubusercontent.com/sandeeprah/debspin/main/bootstrap.sh | bash -s -- desktop
 ```
 
 Last word = the **profile**. Re-run anytime to update; drift self-heals.
