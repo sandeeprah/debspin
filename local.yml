@@ -32,6 +32,8 @@
 
     - role: ssh-server                                             # always
     - role: tailscale                                              # always (access + naming)
+    - role: samba                                                  # LAN name resolution + file sharing
+      when: (install_type | default('lan')) == 'lan'
 
     - role: fonts
       when: profile in ['desktop','lean-desktop']
