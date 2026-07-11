@@ -7,11 +7,11 @@
 #   sudo smbpasswd -a <user>
 # LAN profiles only (see local.yml): NetBIOS/WSD are broadcast, pointless and a
 # needless surface on a cloud box.
-- name: Install samba (smbd/nmbd) + wsdd (WS-Discovery)
+- name: Install samba (smbd/nmbd) + wsdd2 (WS-Discovery)
   ansible.builtin.apt:
     name:
       - samba
-      - wsdd
+      - wsdd2          # Debian's WS-Discovery daemon (package/service is 'wsdd2', not 'wsdd')
     state: present
     install_recommends: no
   become: true
@@ -58,7 +58,7 @@
     - restart nmbd
     - restart smbd
 
-- name: Enable + start smbd, nmbd, wsdd
+- name: Enable + start smbd, nmbd, wsdd2
   ansible.builtin.systemd:
     name: "{{ item }}"
     enabled: true
@@ -66,7 +66,7 @@
   loop:
     - smbd
     - nmbd
-    - wsdd
+    - wsdd2
   become: true
 
 - name: Reminder — set the samba password once (no secret is stored in the repo)
