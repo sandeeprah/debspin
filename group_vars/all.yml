@@ -13,7 +13,12 @@ locale: en_IN.UTF-8
 # ===================================================================
 # Skills → dirs under roles/agent-config/files/skills/  →  ~/.claude/skills/
 claude_skills:
-  - example-skill
+  - brainstorm          # explore options before committing
+  - plan-feature        # request → ordered, codebase-grounded plan
+  - design-fullstack    # data model → API → backend → frontend
+  - write-tests         # behavior/edge/failure tests in the repo's style
+  - code-review         # correctness/security/simplicity/perf, severity-ranked
+  - debug               # reproduce → isolate → root-cause → fix → verify
 
 # MCP servers (Claude Code, user scope). Keys via ${VAR} refs only.
 claude_mcp_servers:
