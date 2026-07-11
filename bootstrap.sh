@@ -32,7 +32,10 @@ cl(){ local t="$1"; shift; whiptail --title debspin --separate-output \
 has(){ printf '%s\n' "$SEL" | grep -qx "$1" && echo true || echo false; }
 
 # ---- detect what this machine can afford ----
-MEM=$(free -m | awk '/Mem/{print $2}'); DISK=$(df -m / | awk 'NR==2{print $4}'); CPUS=$(nproc)
+# Read RAM from /proc/meminfo (kB) rather than `free` — procps isn't guaranteed
+# on a truly minimal Debian install. df/nproc are coreutils, always present.
+MEM=$(awk '/^MemTotal:/{printf "%d", $2/1024}' /proc/meminfo)
+DISK=$(df -m / | awk 'NR==2{print $4}'); CPUS=$(nproc)
 if   [ "$MEM" -lt 2200 ]; then REC=headless
 elif [ "$MEM" -lt 6000 ]; then REC=lean-desktop
 else REC=desktop; fi
