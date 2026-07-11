@@ -56,7 +56,29 @@
     - xsettings.xml        # Greybird-dark GTK theme, Papirus-Dark icons, fonts
     - xfwm4.xml            # Greybird-dark window borders, compositing = false
     - xfce4-desktop.xml    # solid dark backdrop, no desktop icons
-    - xfce4-panel.xml      # stock top panel + centered dock
+  become: true
+
+# Panel config is templated: the directory-menu base path follows the actual
+# user (no hardcoded home/username anywhere).
+- name: Deploy the panel config (top panel + centered dock)
+  ansible.builtin.template:
+    src: xfconf/xfce4-panel.xml.j2
+    dest: "/home/{{ target_user }}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+  become: true
+
+# The dock launchers reference .desktop files by id; ship them, or the dock
+# shows dead green rockets (xfce4-panel's default launcher icon).
+- name: Deploy the dock launcher .desktop files
+  ansible.builtin.copy:
+    src: panel/
+    dest: "/home/{{ target_user }}/.config/xfce4/panel/"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+    directory_mode: "0755"
   become: true
 
 - name: Ensure the user's autostart dir exists
