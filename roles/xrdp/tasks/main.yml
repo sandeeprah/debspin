@@ -12,6 +12,22 @@
     append: true
   become: true
 
+# Default startwm.sh sources /etc/profile then ~/.profile under dash BEFORE
+# launching the session; one bad line in a sourced file exits non-zero and the
+# window manager dies in 0s → black screen, session drops. Replace it: skip the
+# fragile profile prelude, give the session a runtime dir + its own dbus, exec
+# Xfce directly. dbus-run-session ships with dbus-user-session (already present).
+- name: Robust startwm.sh (runtime dir + own dbus, no fragile profile sourcing)
+  ansible.builtin.copy:
+    dest: /etc/xrdp/startwm.sh
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+      exec dbus-run-session -- startxfce4
+  become: true
+  notify: restart xrdp
+
 - name: Cap colour depth on lean boxes (16-bit) to cut encode load
   ansible.builtin.lineinfile:
     path: /etc/xrdp/xrdp.ini
