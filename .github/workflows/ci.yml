@@ -1,0 +1,37 @@
+name: test-bootstrap
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  static:
+    name: shellcheck + ansible syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck bootstrap + test harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck >/dev/null
+          shellcheck --severity=error bootstrap.sh test/test.sh
+
+      - name: Ansible playbook syntax-check
+        run: |
+          docker run --rm -v "$PWD:/debspin:ro" debian:13 bash -c '
+            set -e
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ansible git >/dev/null
+            git config --global --add safe.directory /debspin
+            cd /debspin
+            ansible-playbook --syntax-check -i localhost, local.yml'
+
+  converge:
+    name: full converge (systemd container)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap headless, end-to-end
+        run: ./test/test.sh --systemd headless

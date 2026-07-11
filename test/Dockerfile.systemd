@@ -1,0 +1,20 @@
+# Debian 13 with systemd as PID 1, so the debspin converge can exercise the
+# systemctl tasks (timer, tailscaled, sshd) that a plain container can't.
+# Run it privileged with the host cgroup fs — see test/test.sh --systemd.
+FROM debian:13
+
+ENV container=docker
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends systemd systemd-sysv sudo git ca-certificates \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+# Strip units that are meaningless (and noisy) inside a container.
+RUN find /etc/systemd/system /lib/systemd/system \
+      -path '*.wants/*' \
+      \( -name '*getty*' -o -name '*udev*' -o -name '*mount*' \) -delete 2>/dev/null || true
+
+STOPSIGNAL SIGRTMIN+3
+CMD ["/lib/systemd/systemd"]
