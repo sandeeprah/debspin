@@ -63,3 +63,18 @@
     group: "{{ target_user }}"
     mode: "0644"
   become: true
+
+- name: Install the debspin-gui toggle (on/off/status)
+  ansible.builtin.copy:
+    src: debspin-gui
+    dest: /usr/local/bin/debspin-gui
+    mode: "0755"
+  become: true
+
+# On lean-desktop/VM profiles, default the GUI OFF (headless until you want it).
+- name: Default the desktop OFF on lean profiles (toggle on with 'debspin-gui on')
+  ansible.builtin.systemd:
+    name: xrdp
+    enabled: "{{ profile != 'lean-desktop' }}"
+    state: "{{ 'started' if profile != 'lean-desktop' else 'stopped' }}"
+  become: true

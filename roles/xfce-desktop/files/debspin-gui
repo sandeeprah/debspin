@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# debspin-gui — turn the graphical desktop (xrdp) on/off at runtime.
+# The desktop only costs RAM while a session is live; disconnected sessions are
+# ended after a grace period (see DisconnectedTimeLimit). Your real work runs as
+# systemd services (linger) or tmux, so toggling/killing the GUI never loses data.
+set -euo pipefail
+case "${1:-status}" in
+  on)
+    sudo systemctl enable --now xrdp
+    echo "Desktop ON — connect via RDP."
+    ;;
+  off)
+    sudo systemctl disable --now xrdp
+    # end any live Xfce session to free its RAM (services/tmux keep running)
+    pkill -u "$USER" -x xfce4-session 2>/dev/null || true
+    echo "Desktop OFF — SSH only. Desktop RAM freed; your services/tmux keep running."
+    ;;
+  status)
+    printf 'xrdp:     %s / %s\n' "$(systemctl is-enabled xrdp 2>/dev/null || echo n/a)" "$(systemctl is-active xrdp 2>/dev/null || echo n/a)"
+    if pgrep -x xfce4-session >/dev/null 2>&1; then
+      echo "session:  a desktop session is LIVE (using RAM)"
+    else
+      echo "session:  no desktop session (no desktop RAM in use)"
+    fi
+    ;;
+  *)
+    echo "usage: debspin-gui {on|off|status}" >&2; exit 1
+    ;;
+esac

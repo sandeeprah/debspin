@@ -20,6 +20,25 @@
   become: true
   notify: restart xrdp
 
+# End disconnected GUI sessions after a grace period to free desktop RAM.
+# SAFE because real work runs as systemd services (linger) or tmux, NOT in the
+# session — so this drops only the Xfce shell, never your running work.
+- name: xrdp — do not kill sessions immediately on disconnect
+  ansible.builtin.lineinfile:
+    path: /etc/xrdp/sesman.ini
+    regexp: '^KillDisconnected='
+    line: "KillDisconnected=false"
+  become: true
+  notify: restart xrdp
+
+- name: xrdp — end sessions {{ xrdp_disconnected_timeout | default(600) }}s after disconnect (0 = never, for sticky workstations)
+  ansible.builtin.lineinfile:
+    path: /etc/xrdp/sesman.ini
+    regexp: '^DisconnectedTimeLimit='
+    line: "DisconnectedTimeLimit={{ xrdp_disconnected_timeout | default(600) }}"
+  become: true
+  notify: restart xrdp
+
 - name: Enable + start xrdp (auto-start at boot, no login needed)
   ansible.builtin.systemd:
     name: xrdp
