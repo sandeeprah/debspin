@@ -30,13 +30,17 @@ jobs:
             ansible-playbook --syntax-check -i localhost, local.yml'
 
   converge:
-    name: full converge (systemd container)
+    name: converge (${{ matrix.profile }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [headless, lean-desktop]
     steps:
       - uses: actions/checkout@v4
-      - name: Bootstrap headless, end-to-end
+      - name: Bootstrap ${{ matrix.profile }}, end-to-end
         run: |
           # checkout leaves a detached HEAD; give ansible-pull a real branch
           # to resolve (file:///debspin -C <branch>).
           git checkout -B ci-test
-          ./test/test.sh --systemd headless
+          ./test/test.sh --systemd ${{ matrix.profile }}
