@@ -1,0 +1,11 @@
+# debspin — shared defaults (overridable per-host in host_vars, or via
+# /etc/debspin/host.yml written by bootstrap).
+profile: desktop            # desktop | lean-desktop | headless
+install_type: lan           # lan | cloud  (affects firewall/samba/ssh posture)
+
+timezone: Asia/Dubai
+locale: en_IN.UTF-8
+
+# Secrets are NEVER stored here. They come from Bitwarden at apply time via the
+# community.general.bitwarden lookup, e.g.:
+#   openrouter_key: "{{ lookup('community.general.bitwarden','openrouter-key', field='password') | first }}"

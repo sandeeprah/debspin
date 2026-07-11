@@ -1,0 +1,24 @@
+# runtimes — Node (via nvm) + Python (via uv). Used by agents + workloads.
+# NOTE on this machine nvm lives at ~/.config/nvm (XDG), not ~/.nvm.
+- name: Install build prerequisites
+  ansible.builtin.apt:
+    name: [build-essential, curl, git, python3, python3-venv, pipx]
+    state: present
+    install_recommends: no
+  become: true
+
+- name: Check for nvm
+  ansible.builtin.stat:
+    path: "/home/{{ target_user }}/.config/nvm/nvm.sh"
+  register: nvm_sh
+
+# TODO: install nvm + Node LTS as the user if missing, e.g. run the nvm installer
+# with NVM_DIR=~/.config/nvm, then `nvm install --lts`. Kept manual for now so we
+# don't fight shell-init ordering during a headless pull.
+- name: Install uv (fast Python package manager) for the user
+  ansible.builtin.shell: |
+    command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+  args:
+    creates: "/home/{{ target_user }}/.local/bin/uv"
+  become: true
+  become_user: "{{ target_user }}"

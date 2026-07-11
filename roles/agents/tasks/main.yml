@@ -1,0 +1,19 @@
+# agents — the subscription CLI coding agents (all headless-capable).
+# Auth = OAuth credential files seeded from Bitwarden (never in this repo).
+#
+# Installed via npm (needs Node from the runtimes role):
+#   @anthropic-ai/claude-code (Claude Code), plus Codex / opencode / agy-cli.
+#
+# TODO wire-up (per your accounts):
+#   1. npm -g install the agent CLIs.
+#   2. Deploy each tool's credential file from Bitwarden, e.g.:
+#        ~/.claude/.credentials.json   <- bitwarden 'claude-credentials'
+#        ~/.codex/auth.json            <- bitwarden 'codex-auth'
+#      (secure-note attachments; fetched with the community.general.bitwarden lookup)
+#   3. API-key workloads use OpenRouter + Exa via env, not here (see workloads).
+- name: Placeholder — agents role not wired yet
+  ansible.builtin.debug:
+    msg: >-
+      agents role is a stub. Install Node first (runtimes), then npm -g the agent
+      CLIs and deploy their credential files from Bitwarden. See comments in
+      roles/agents/tasks/main.yml.

@@ -1,0 +1,65 @@
+# xfce-desktop — the proven dark Xfce-over-xrdp desktop (from AcerSpin).
+# Config is applied as xfconf perchannel XML (works headless, no live session
+# needed) + an xscreensaver disable. On next login, xfsettingsd applies it.
+- name: Install Xfce + the pieces we standardized on
+  ansible.builtin.apt:
+    name:
+      - xfce4                     # session, wm (xfwm4), panel, settings, xfdesktop, thunar, appfinder
+      - xfce4-terminal
+      - xfce4-docklike-plugin     # (available if we later want a grouping dock)
+      - xfce4-pulseaudio-plugin   # volume in the panel
+      - xfce4-screenshooter
+      - network-manager-gnome     # nm-applet (WiFi/network tray)
+      - greybird-gtk-theme        # Greybird-dark: GTK + xfwm4 borders
+      - papirus-icon-theme        # Papirus-Dark icons
+      - fonts-dejavu
+    state: present
+    install_recommends: no
+  become: true
+
+- name: Remove things that misbehave over xrdp (screensaver/locker)
+  ansible.builtin.apt:
+    name: [xscreensaver, light-locker, xfce4-screensaver]
+    state: absent
+  become: true
+
+- name: Ensure the user's xfconf dir exists
+  ansible.builtin.file:
+    path: "/home/{{ target_user }}/.config/xfce4/xfconf/xfce-perchannel-xml"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0700"
+  become: true
+
+- name: Deploy the proven xfconf settings (theme, icons, dark bg, compositor off)
+  ansible.builtin.copy:
+    src: "xfconf/{{ item }}"
+    dest: "/home/{{ target_user }}/.config/xfce4/xfconf/xfce-perchannel-xml/{{ item }}"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+  loop:
+    - xsettings.xml        # Greybird-dark GTK theme, Papirus-Dark icons, fonts
+    - xfwm4.xml            # Greybird-dark window borders, compositing = false
+    - xfce4-desktop.xml    # solid dark backdrop, no desktop icons
+    - xfce4-panel.xml      # stock top panel + centered dock
+  become: true
+
+- name: Disable xscreensaver autostart (belt-and-braces)
+  ansible.builtin.copy:
+    src: "autostart/xscreensaver.desktop"
+    dest: "/home/{{ target_user }}/.config/autostart/xscreensaver.desktop"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+  become: true
+
+- name: Point the xrdp session at Xfce
+  ansible.builtin.copy:
+    dest: "/home/{{ target_user }}/.xsession"
+    content: "startxfce4\n"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+  become: true

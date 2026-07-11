@@ -1,0 +1,38 @@
+# debspin — ansible-pull entrypoint. Runs on the local machine each pull.
+# Profile comes from /etc/debspin/host.yml (set by bootstrap), overridable by
+# committing host_vars/<hostname>.yml.
+- name: Converge this machine
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    profile: desktop            # default; overridden by /etc/debspin/host.yml or host_vars
+    target_user: "{{ lookup('env','SUDO_USER') | default(ansible_user_id, true) }}"
+    is_laptop: "{{ (ansible_form_factor | default('')) in ['Laptop','Notebook','Portable'] }}"
+
+  # profile is supplied by bootstrap via  --extra-vars @/etc/debspin/host.yml
+  # (or commit host_vars/<hostname>.yml and add it to an inventory to override)
+
+  pre_tasks:
+    - name: Show what we're doing
+      ansible.builtin.debug:
+        msg: "debspin converging '{{ ansible_hostname }}' as profile='{{ profile }}' (user={{ target_user }}, laptop={{ is_laptop }})"
+
+  roles:
+    - role: base                                                    # always
+
+    - role: ssh-server                                             # always
+    - role: tailscale                                              # always (access + naming)
+
+    - role: fonts
+      when: profile in ['desktop','lean-desktop']
+    - role: xrdp
+      when: profile in ['desktop','lean-desktop']
+    - role: xfce-desktop
+      when: profile in ['desktop','lean-desktop']
+    - role: power-lid
+      when: is_laptop | bool
+
+    - role: runtimes                                              # node/uv
+    - role: agents                                                # claude/codex/opencode/agy-cli

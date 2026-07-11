@@ -1,0 +1,10 @@
+# fonts — emoji + CJK + broad Unicode (fixes "tofu" boxes in browsers).
+- name: Install broad Unicode font coverage
+  ansible.builtin.apt:
+    name:
+      - fonts-noto
+      - fonts-noto-cjk
+      - fonts-noto-color-emoji
+    state: present
+  become: true
+  notify: refresh font cache

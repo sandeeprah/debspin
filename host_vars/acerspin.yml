@@ -1,0 +1,4 @@
+# AcerSpin — the reference machine (home laptop, Debian 13, xrdp).
+profile: desktop
+install_type: lan
+# it's a laptop used remotely -> lid must not suspend (power-lid role handles it)

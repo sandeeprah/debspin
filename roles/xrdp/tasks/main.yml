@@ -1,0 +1,28 @@
+# xrdp — remote desktop (from the AcerSpin runbook).
+- name: Install xrdp
+  ansible.builtin.apt:
+    name: xrdp
+    state: present
+  become: true
+
+- name: Let xrdp read the TLS cert (fixes black screen)
+  ansible.builtin.user:
+    name: xrdp
+    groups: ssl-cert
+    append: true
+  become: true
+
+- name: Cap colour depth on lean boxes (16-bit) to cut encode load
+  ansible.builtin.lineinfile:
+    path: /etc/xrdp/xrdp.ini
+    regexp: '^max_bpp='
+    line: "max_bpp={{ 16 if profile == 'lean-desktop' else 24 }}"
+  become: true
+  notify: restart xrdp
+
+- name: Enable + start xrdp (auto-start at boot, no login needed)
+  ansible.builtin.systemd:
+    name: xrdp
+    enabled: true
+    state: started
+  become: true
