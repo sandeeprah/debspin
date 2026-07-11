@@ -31,8 +31,8 @@ claude_skill_repos: []
 
 # MCP servers (Claude Code, user scope). Keys via ${VAR} refs only.
 claude_mcp_servers:
-  - name: fetch                       # keyless demo server
-    config: { type: stdio, command: npx, args: ["-y", "@modelcontextprotocol/server-fetch"] }
+  - name: fetch                       # keyless web-fetch server (Python, via uv/uvx)
+    config: { type: stdio, command: uvx, args: ["mcp-server-fetch"] }
   # - name: github                    # example WITH a secret, kept out of repo:
   #   config: { type: http, url: "https://api.githubcopilot.com/mcp/",
   #             headers: { Authorization: "Bearer ${GITHUB_TOKEN}" } }
