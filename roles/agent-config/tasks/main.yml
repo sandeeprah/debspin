@@ -1,184 +1,22 @@
-# agent-config — debspin's core: fleet-wide SKILLS + MCP servers + shared
-# instructions, across Claude Code / opencode / Codex, from ONE managed list.
-# Secret-free: MCP keys are env-var refs, populated per device. Each agent block
-# runs only where that agent is installed.
+# agent-config — deploy the SHARED, cross-platform agent config (skills + MCP +
+# instructions). The content + applier live in their own repo so the same thing
+# runs on Windows too:  github.com/sandeeprah/agent-config
+# Here debspin just clones it and runs apply.sh at the end of each converge.
+- name: Clone/update agent-config
+  ansible.builtin.git:
+    repo: "{{ agent_config_repo | default('https://github.com/sandeeprah/agent-config') }}"
+    dest: "/home/{{ target_user }}/.local/share/agent-config"
+    depth: 1
+    force: true
+  become: true
+  become_user: "{{ target_user }}"
 
-# ================= Claude Code =================
-- name: agent-config — Claude Code
-  when: agents.claude_code | default(false) | bool
-  vars: { home: "/home/{{ target_user }}" }
-  block:
-    - name: Ensure ~/.claude/skills exists
-      ansible.builtin.file:
-        path: "{{ home }}/.claude/skills"
-        state: directory
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0755"
-      become: true
-
-    - name: Deploy managed skills (Claude, static/auto-discovered)
-      ansible.builtin.copy:
-        src: "skills/{{ item }}/"
-        dest: "{{ home }}/.claude/skills/{{ item }}/"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0644"
-      loop: "{{ claude_skills | default([]) }}"
-      become: true
-
-    # OPT-IN: git-vendor specific quality skill repos (keep few — see group_vars note)
-    - name: Vendor skill repos (clone/update)
-      ansible.builtin.git:
-        repo: "{{ item }}"
-        dest: "{{ home }}/.claude/skill-sources/{{ item | basename }}"
-        depth: 1
-        force: true
-      loop: "{{ claude_skill_repos | default([]) }}"
-      become: true
-      become_user: "{{ target_user }}"
-      when: claude_skill_repos | default([]) | length > 0
-
-    - name: Symlink vendored SKILL.md dirs into ~/.claude/skills
-      ansible.builtin.shell: |
-        find "$HOME/.claude/skill-sources" -name SKILL.md -printf '%h\n' 2>/dev/null | while read -r d; do
-          ln -sfn "$d" "$HOME/.claude/skills/$(basename "$d")"
-        done
-      args: { executable: /bin/bash }
-      become: true
-      become_user: "{{ target_user }}"
-      environment: { HOME: "{{ home }}" }
-      when: claude_skill_repos | default([]) | length > 0
-      changed_when: false
-
-    - name: Apply MCP servers (Claude, user scope; ${VAR} key refs)
-      ansible.builtin.shell: |
-        export NVM_DIR="$HOME/.config/nvm"; . "$NVM_DIR/nvm.sh" 2>/dev/null || true
-        export PATH="$HOME/.local/bin:$PATH"
-        claude mcp remove {{ item.name | quote }} -s user >/dev/null 2>&1 || true
-        claude mcp add-json {{ item.name | quote }} {{ (item.config | to_json) | quote }} -s user
-      args: { executable: /bin/bash }
-      loop: "{{ claude_mcp_servers | default([]) }}"
-      become: true
-      become_user: "{{ target_user }}"
-      environment: { HOME: "{{ home }}" }
-      changed_when: false
-
-    - name: Shared instructions → ~/.claude/CLAUDE.md
-      ansible.builtin.copy:
-        src: AGENTS.md
-        dest: "{{ home }}/.claude/CLAUDE.md"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0644"
-      become: true
-
-    # plugins (marketplaces + enabled map) — only if you defined any
-    - name: Read existing Claude settings.json
-      ansible.builtin.slurp: { src: "{{ home }}/.claude/settings.json" }
-      register: _cs
-      failed_when: false
-      become: true
-    - name: Merge marketplaces + enabledPlugins
-      when: (claude_marketplaces | default({})) or (claude_plugins | default({}))
-      ansible.builtin.copy:
-        dest: "{{ home }}/.claude/settings.json"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0644"
-        content: >-
-          {{ ((_cs.content | b64decode | from_json) if _cs.content is defined else {})
-             | combine({'extraKnownMarketplaces': claude_marketplaces | default({}),
-                        'enabledPlugins': claude_plugins | default({})}) | to_nice_json }}
-      become: true
-
-# ================= opencode =================
-- name: agent-config — opencode
-  when: agents.opencode | default(false) | bool
-  vars: { home: "/home/{{ target_user }}", ocf: "/home/{{ target_user }}/.config/opencode/opencode.json" }
-  block:
-    - name: Ensure opencode config dir
-      ansible.builtin.file:
-        path: "{{ home }}/.config/opencode"
-        state: directory
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0755"
-      become: true
-
-    - name: Build opencode MCP map (translate from the managed list)
-      ansible.builtin.set_fact:
-        oc_mcp: >-
-          {{ oc_mcp | default({}) | combine({ item.name:
-             ({'type':'local','command': ([item.config.command] + (item.config.args | default([]))),
-               'environment': item.config.env | default({}), 'enabled': true}
-              if item.config.type in ['stdio','local']
-              else {'type':'remote','url': item.config.url, 'headers': item.config.headers | default({}), 'enabled': true}) }) }}
-      loop: "{{ claude_mcp_servers | default([]) }}"
-
-    - name: Read existing opencode.json
-      ansible.builtin.slurp: { src: "{{ ocf }}" }
-      register: _oc
-      failed_when: false
-      become: true
-
-    - name: Write opencode.json (merge mcp; ${VAR} → {env:VAR})
-      when: oc_mcp is defined
-      ansible.builtin.copy:
-        dest: "{{ ocf }}"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0644"
-        content: >-
-          {{ (((_oc.content | b64decode | from_json) if _oc.content is defined else {'$schema':'https://opencode.ai/config.json'})
-             | combine({'mcp': oc_mcp}, recursive=True) | to_nice_json)
-             | regex_replace('\\$\\{(\\w+)\\}', '{env:\\1}') }}
-      become: true
-
-    - name: Shared instructions → opencode AGENTS.md
-      ansible.builtin.copy:
-        src: AGENTS.md
-        dest: "{{ home }}/.config/opencode/AGENTS.md"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0644"
-      become: true
-
-# ================= Codex =================
-- name: agent-config — Codex
-  when: agents.codex | default(false) | bool
-  vars: { home: "/home/{{ target_user }}" }
-  block:
-    - name: Ensure ~/.codex exists
-      ansible.builtin.file:
-        path: "{{ home }}/.codex"
-        state: directory
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0755"
-      become: true
-
-    # stdio servers via the codex CLI (avoids clobbering config.toml). Best-effort:
-    # Codex has known config.toml MCP-detection quirks; non-fatal if the CLI differs.
-    - name: Apply stdio MCP servers (Codex CLI)
-      ansible.builtin.shell: |
-        export NVM_DIR="$HOME/.config/nvm"; . "$NVM_DIR/nvm.sh" 2>/dev/null || true
-        export PATH="$HOME/.local/bin:$PATH"
-        codex mcp remove {{ item.name | quote }} >/dev/null 2>&1 || true
-        codex mcp add {{ item.name | quote }} -- {{ item.config.command }} {{ item.config.args | default([]) | join(' ') }}
-      args: { executable: /bin/bash }
-      loop: "{{ claude_mcp_servers | default([]) | selectattr('config.type','in',['stdio','local']) | list }}"
-      become: true
-      become_user: "{{ target_user }}"
-      environment: { HOME: "{{ home }}" }
-      failed_when: false
-      changed_when: false
-
-    - name: Shared instructions → Codex AGENTS.md
-      ansible.builtin.copy:
-        src: AGENTS.md
-        dest: "{{ home }}/.codex/AGENTS.md"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0644"
-      become: true
+- name: Apply agent-config to whichever agents are installed
+  ansible.builtin.command: bash apply.sh
+  args:
+    chdir: "/home/{{ target_user }}/.local/share/agent-config"
+  become: true
+  become_user: "{{ target_user }}"
+  environment:
+    HOME: "/home/{{ target_user }}"
+  changed_when: false

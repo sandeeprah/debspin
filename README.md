@@ -5,19 +5,17 @@ skills, MCP servers, and plugins — kept identical across every device.** It al
 sets up the substrate: a dark **Xfce desktop over xrdp**, runtimes, and the
 coding agents. Edit once, `git push`, and every machine converges. No secrets.
 
-### The core: manage skills + MCP + instructions across all machines *and agents*
-Defined once in `group_vars/all.yml`, deployed by the **`agent-config`** role to
-**Claude Code, opencode, and Codex** — from a single managed list:
-- **MCP servers** (the shared layer — MCP is an open standard) → translated into
-  each agent's config: Claude (`claude mcp add-json`, `${VAR}`), opencode
-  (`opencode.json`, `{env:VAR}`), Codex (`config.toml` via CLI). **Keys stay out**
-  of the repo — env-var refs, populated per device.
-- **Shared instructions** → one `AGENTS.md` deployed to every agent
-  (`~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`, `~/.codex/AGENTS.md`).
-- **Skills** → Claude Code `~/.claude/skills/` (Claude-specific format).
-- **Plugins** → Claude marketplaces + enabled map.
+### Two concerns, cleanly split
+- **debspin** (this repo) = the **Debian platform**: OS, dark Xfce desktop, runtimes,
+  agent installs, extras. Ansible-pull, Debian-only.
+- **[agent-config](https://github.com/sandeeprah/agent-config)** (separate repo) =
+  the **cross-platform** skills + MCP + shared instructions. Tool-light (`apply.sh`
+  / `apply.ps1`), so the *same* config runs on your **Windows 11 desktop** and the
+  Debian fleet. debspin's `agent-config` role just clones it and runs `apply.sh` at
+  the end of each converge.
 
-Add an MCP server to your whole fleet, on every agent = a one-line edit + `git push`.
+Manage skills/MCP in the **agent-config** repo (one edit → every machine *and* every
+agent — Claude Code / opencode / Codex — converges). No secrets in either repo.
 
 ```bash
 # on a fresh Debian — interactive, resource-aware wizard:

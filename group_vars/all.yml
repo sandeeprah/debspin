@@ -6,40 +6,10 @@ install_type: lan           # lan | cloud  (affects firewall/samba/ssh posture)
 timezone: Asia/Dubai
 locale: en_IN.UTF-8
 
-# ===================================================================
-# FLEET-MANAGED AGENT CONFIG — the core of debspin.
-# Edit here, `git push`, every machine converges on next pull.
-# NO SECRETS: MCP keys use ${ENV_VAR} refs, populated per-device.
-# ===================================================================
-# KEEP SKILLS CURATED AND FEW. A handful of focused skills route far better than
-# hundreds — 1000+ bloats context (every skill's description is always loaded)
-# and degrades selection. Do NOT bulk-vendor aggregator lists.
-#
-# Curated local set (bundled in this repo, reviewed):
-claude_skills:
-  - brainstorm          # explore options before committing
-  - plan-feature        # request → ordered, codebase-grounded plan
-  - design-fullstack    # data model → API → backend → frontend
-  - write-tests         # behavior/edge/failure tests in the repo's style
-  - code-review         # correctness/security/simplicity/perf, severity-ranked
-  - debug               # reproduce → isolate → root-cause → fix → verify
-
-# OPT-IN: git-vendor ONE specific, reviewed quality repo (cloned + auto-updated,
-# its SKILL.md dirs symlinked in). Leave empty unless you want it; never add many.
-claude_skill_repos: []
-#   - https://github.com/anthropics/skills   # official — review its contents first
-
-# MCP servers (Claude Code, user scope). Keys via ${VAR} refs only.
-claude_mcp_servers:
-  - name: fetch                       # keyless web-fetch server (Python, via uv/uvx)
-    config: { type: stdio, command: uvx, args: ["mcp-server-fetch"] }
-  # - name: github                    # example WITH a secret, kept out of repo:
-  #   config: { type: http, url: "https://api.githubcopilot.com/mcp/",
-  #             headers: { Authorization: "Bearer ${GITHUB_TOKEN}" } }
-
-# Plugins: marketplaces + enabled map (Claude Code settings.json). Empty by default.
-claude_marketplaces: {}              # e.g. { "my-org": { source: { source: github, repo: "me/plugins" } } }
-claude_plugins: {}                   # e.g. { "commit-commands@my-org": true }
+# Agent config (skills + MCP + shared instructions) lives in its own
+# cross-platform repo and is applied by the `agent-config` role at the end of
+# each converge. Manage skills/MCP THERE, not here:
+agent_config_repo: https://github.com/sandeeprah/agent-config
 
 # xrdp: end a disconnected GUI session after this many seconds to free desktop
 # RAM (0 = never, for sticky workstations). Safe — real work runs as systemd
