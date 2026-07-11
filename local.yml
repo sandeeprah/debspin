@@ -9,7 +9,8 @@
   vars:
     profile: desktop            # default; overridden by /etc/debspin/host.yml or host_vars
     target_user: "{{ lookup('env','SUDO_USER') | default(ansible_user_id, true) }}"
-    is_laptop: "{{ (ansible_form_factor | default('')) in ['Laptop','Notebook','Portable'] }}"
+    # Include Convertible/Detachable so 2-in-1s (e.g. Acer Spin) get lid handling.
+    is_laptop: "{{ (ansible_form_factor | default('')) in ['Laptop','Notebook','Portable','Convertible','Detachable'] }}"
 
   # profile is supplied by bootstrap via  --extra-vars @/etc/debspin/host.yml
   # (or commit host_vars/<hostname>.yml and add it to an inventory to override)
