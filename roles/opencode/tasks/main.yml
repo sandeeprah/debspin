@@ -1,7 +1,8 @@
-# opencode — open-source, provider-agnostic terminal coding agent for the
-# remote boxes. Points at FREE APIs (OpenRouter free / Groq) or a shared Ollama
-# endpoint — NOT the subscription agents (those stay on the Windows desktop).
-- name: Install opencode (standalone binary; no Node needed)
+# opencode — open-source terminal coding agent. No secrets in this repo.
+# Provider/model + any API key are set interactively per-user with
+# `opencode auth login`, or point opencode_base_url at a local/self-hosted model
+# (e.g. an Ollama endpoint — no key needed). Nothing sensitive is stored here.
+- name: Install opencode (standalone binary)
   ansible.builtin.shell: |
     set -e
     curl -fsSL https://opencode.ai/install | bash
@@ -21,10 +22,11 @@
     mode: "0755"
   become: true
 
-# Provider config. Default points at a shared Ollama endpoint (e.g. the i7 over
-# Tailscale); switch opencode_provider to 'openrouter' to use free API models.
-# The API key (if any) comes from Bitwarden in the one-time secrets play, NOT here.
-- name: Deploy opencode config (model provider)
+# Optional: default to a local/self-hosted OpenAI-compatible endpoint (keyless).
+# Only written if opencode_base_url is set for the host; otherwise use
+# `opencode auth login` interactively. No API keys ever live in the repo.
+- name: Deploy keyless opencode config (local/self-hosted model)
+  when: opencode_base_url is defined
   ansible.builtin.copy:
     dest: "/home/{{ target_user }}/.config/opencode/opencode.json"
     owner: "{{ target_user }}"
@@ -33,23 +35,11 @@
     content: |
       {
         "$schema": "https://opencode.ai/config.json",
-        "model": "{{ opencode_model | default('ollama/qwen2.5-coder:7b') }}",
         "provider": {
-          "ollama": {
+          "local": {
             "npm": "@ai-sdk/openai-compatible",
-            "options": { "baseURL": "{{ opencode_ollama_url | default('http://i7.tailnet:11434/v1') }}" }
+            "options": { "baseURL": "{{ opencode_base_url }}" }
           }
         }
       }
   become: true
-
-# TODO options:
-#  - Use free APIs instead: set opencode_provider=openrouter and put
-#    OPENROUTER_API_KEY in the env (from Bitwarden, via the secrets play).
-#  - `opencode auth login` (interactive) also works per-user.
-- name: Note
-  ansible.builtin.debug:
-    msg: >-
-      opencode installed. Default model = {{ opencode_model | default('ollama/qwen2.5-coder:7b') }}
-      via {{ opencode_ollama_url | default('http://i7.tailnet:11434/v1') }}.
-      Point opencode_ollama_url at your shared Ollama, or switch to OpenRouter free.

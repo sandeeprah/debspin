@@ -1,8 +1,8 @@
 # debspin
 
-**Your customization layer over Debian.** One command turns a stock Debian
-netinst into a polished, consistent remote-dev machine — dark Xfce desktop over
-xrdp, coding agents, and access tooling — then keeps itself tidy automatically.
+**A Debian customization layer.** One command turns a stock Debian netinst into a
+polished, consistent machine — a dark **Xfce desktop over xrdp** — then keeps
+itself tidy automatically. No secrets, no accounts, nothing to sign into.
 
 ```bash
 # on a fresh Debian (LAN box or cloud VM):
@@ -24,24 +24,30 @@ periodically pulls this repo and re-applies itself:
 ## Profiles (per-host, in `host_vars/<hostname>.yml`)
 | Profile | For | Gets |
 |---|---|---|
-| `desktop` | workstation / i7 | full Xfce desktop, xrdp, agents |
-| `lean-desktop` | 2–4 GB VM w/ GUI | Xfce (perf-tuned), agents |
-| `headless` | server VM | no desktop; base + CLI agents |
+| `desktop` | workstation / laptop | full dark Xfce desktop, GUI on |
+| `lean-desktop` | 2–4 GB VM w/ GUI | Xfce (perf-tuned), **GUI off by default** — toggle with `debspin-gui on` |
+| `headless` | server VM | no desktop; just base + access |
 
-## What the desktop is (proven on AcerSpin)
+## The desktop (proven on AcerSpin)
 Xfce over xrdp, tuned the boring-reliable way:
 - **Greybird-dark** GTK + window borders, **Papirus-Dark** icons, solid dark bg
 - Stock layout (top panel + centered dock), de-cluttered desktop
-- **Compositor OFF, screensaver OFF** (xrdp-clean) — none of the LXQt crash/notice issues
-- Native rendering — no xcompmgr/hsetroot hacks
+- **Compositor OFF, screensaver removed** (xrdp-clean) — none of the LXQt crash/notice issues
+- Native rendering — no compositor/wallpaper hacks
+
+## Runtime desktop control
+```
+debspin-gui on       # enable the desktop (RDP)
+debspin-gui off      # headless — SSH only, frees desktop RAM
+debspin-gui status
+```
+Disconnected RDP sessions end after `xrdp_disconnected_timeout` (default 600 s) to
+free RAM — **safe**, because real work runs in `tmux` / systemd user services
+(linger enabled), so only the Xfce shell is disposable, never your work.
 
 ## Access (from Windows)
-- **Code:** VS Code Remote-SSH (needs only sshd)
-- **Desktop:** RDP over **Tailscale** (never a public port)
-- **Files:** SFTP over Tailscale (Samba only on LAN boxes)
-
-## Secrets
-Live in **Bitwarden**, never in this repo. Pulled at apply time.
+- **Desktop:** RDP to the box (over **Tailscale** for internet reach, never a public port)
+- **Shell / code:** SSH / VS Code Remote-SSH (needs only sshd)
 
 ## Layout
 ```
@@ -52,12 +58,19 @@ debspin/
 ├─ group_vars/all.yml
 ├─ host_vars/<host>.yml  # each machine's profile
 └─ roles/
-   ├─ base/ fonts/ xrdp/ xfce-desktop/ power-lid/
-   ├─ ssh-server/ tailscale/            # access
-   └─ runtimes/ agents/                 # dev tooling (Node/uv, Claude/Codex/…)
+   ├─ base/              # apt, zram (small VMs), tmux, linger
+   ├─ fonts/             # emoji / CJK
+   ├─ xrdp/              # remote desktop + disconnect timer + GUI toggle
+   ├─ xfce-desktop/      # the dark Xfce look (exact xfconf config)
+   ├─ power-lid/         # laptops: lid never suspends
+   ├─ ssh-server/        # hardened, key-only on cloud
+   ├─ tailscale/         # optional mesh reach (interactive `tailscale up`)
+   ├─ runtimes/          # Python (uv) + Node (nvm, XDG path)
+   └─ opencode/          # open-source coding agent (keyless / `opencode auth login`)
 ```
 
-## Status
-Proven & complete: `base`, `xrdp`, `fonts`, `xfce-desktop`, `power-lid`.
-Designed, wire up when ready: `ssh-server`, `tailscale`, `runtimes`, `agents`
-(see each role's `tasks/main.yml` for the TODO markers).
+## No secrets
+This repo contains **no credentials, keys, or accounts** — it's OS + desktop +
+runtimes config only. Tailscale is joined interactively (`sudo tailscale up`);
+opencode's provider/key is set per-user via `opencode auth login` (or pointed at
+a keyless local model). Nothing sensitive is stored — safe to keep public.

@@ -28,10 +28,7 @@
     state: started
   become: true
 
-# TODO: bring the node onto YOUR tailnet. Either:
-#   - one-time interactive:  sudo tailscale up
-#   - or unattended with an auth key from Bitwarden:
-#       tailscale up --authkey "{{ lookup('community.general.bitwarden','tailscale-authkey', field='password') | first }}"
+# Join YOUR tailnet with a one-time interactive:  sudo tailscale up
 - name: Reminder to authenticate (first run only)
   ansible.builtin.debug:
-    msg: "Run 'sudo tailscale up' once to join the tailnet (or wire an auth key from Bitwarden here)."
+    msg: "Run 'sudo tailscale up' once to join the tailnet."

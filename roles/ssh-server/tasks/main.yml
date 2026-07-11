@@ -19,5 +19,4 @@
   notify: restart ssh
 
 # NOTE: on 'cloud' install_type this sets PasswordAuthentication=no, so make sure
-# your SSH public key is deployed FIRST (provider injects it at VM creation, or
-# add an authorized_keys task here pulling the key from Bitwarden/vault).
+# your SSH public key is deployed FIRST (providers inject it at VM creation).

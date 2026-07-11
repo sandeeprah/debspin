@@ -34,6 +34,5 @@
     - role: power-lid
       when: is_laptop | bool
 
-    - role: runtimes                                              # node/uv
-    - role: opencode                                             # open-source coding agent (free APIs / Ollama)
-    - role: hermes                                               # Nous Hermes agent (CLI + optional gateway daemon)
+    - role: runtimes                                              # Python (uv) + Node (nvm)
+    - role: opencode                                             # open-source coding agent (keyless / interactive auth)

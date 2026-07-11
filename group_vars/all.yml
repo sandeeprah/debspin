@@ -10,7 +10,3 @@ locale: en_IN.UTF-8
 # RAM (0 = never, for sticky workstations). Safe — real work runs as systemd
 # services (linger) or tmux, so this drops only the Xfce shell, never your work.
 xrdp_disconnected_timeout: 600     # 10 min grace; survives brief network blips
-
-# Secrets are NEVER stored here. They come from Bitwarden at apply time via the
-# community.general.bitwarden lookup, e.g.:
-#   openrouter_key: "{{ lookup('community.general.bitwarden','openrouter-key', field='password') | first }}"
