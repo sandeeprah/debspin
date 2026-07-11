@@ -8,6 +8,13 @@
     curl -fsSL https://opencode.ai/install | bash
   args:
     creates: "/home/{{ target_user }}/.opencode/bin/opencode"
+  # The installer fetches version info over the network; a transient blip must
+  # not fail the whole converge. Retry a few times. `creates` above still makes
+  # it a no-op once installed, so this only loops on a genuine first-run failure.
+  register: opencode_install
+  retries: 3
+  delay: 5
+  until: opencode_install is success
   become: true
   become_user: "{{ target_user }}"
   environment:
