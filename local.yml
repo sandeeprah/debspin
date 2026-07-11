@@ -36,3 +36,4 @@
 
     - role: runtimes                                              # node/uv
     - role: opencode                                             # open-source coding agent (free APIs / Ollama)
+    - role: hermes                                               # Nous Hermes agent (CLI + optional gateway daemon)
