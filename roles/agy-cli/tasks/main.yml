@@ -1,21 +1,29 @@
-# agy-cli — Google Antigravity CLI.
-# HONEST NOTE: the official install command wasn't confirmed at build time, so
-# this role does NOT run a guessed installer (that would risk breaking the pull).
-# Fill in the real install step below once confirmed, e.g. an npm package or the
-# vendor install script, then remove this notice.
-- name: agy-cli install is not wired yet
-  ansible.builtin.debug:
-    msg: >-
-      agy-cli selected but its official install command isn't set. Add it in
-      roles/agy-cli/tasks/main.yml (nothing was installed). Meanwhile install it
-      manually per Google's Antigravity CLI docs.
+# agy-cli — Google Antigravity CLI (binary: `agy`). Standalone installer, no Node.
+# Install only; first `agy` run does interactive Google sign-in (keyring), so no
+# secrets in this repo. Linux-supported; installs to ~/.local/bin/agy.
+- name: Install Antigravity CLI (agy)
+  ansible.builtin.shell: |
+    set -e
+    curl -fsSL https://antigravity.google/cli/install.sh | bash
+  args:
+    creates: "/home/{{ target_user }}/.local/bin/agy"
+  become: true
+  become_user: "{{ target_user }}"
+  environment:
+    HOME: "/home/{{ target_user }}"
 
-# Example once you know it (uncomment + correct):
-# - name: Install Antigravity CLI
-#   ansible.builtin.shell: |
-#     export NVM_DIR="$HOME/.config/nvm"; . "$NVM_DIR/nvm.sh" 2>/dev/null || true
-#     command -v agy >/dev/null || npm install -g <the-real-package>
-#   args: { executable: /bin/bash }
-#   become: true
-#   become_user: "{{ target_user }}"
-#   environment: { HOME: "/home/{{ target_user }}" }
+- name: Configure PATH/shell for agy (idempotent)
+  ansible.builtin.shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    command -v agy >/dev/null && agy install || true
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  environment:
+    HOME: "/home/{{ target_user }}"
+  changed_when: false
+
+- name: Note
+  ansible.builtin.debug:
+    msg: "agy installed to ~/.local/bin. Run `agy` once to sign in with Google (interactive browser flow)."

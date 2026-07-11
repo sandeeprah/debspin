@@ -84,10 +84,8 @@ debspin/
 ## Coding agents (checkbox menu, install-only)
 The wizard offers **Claude Code · Codex · agy-cli · opencode · Hermes · VS Code**
 as checkboxes. Only the *install* happens here — you **sign in per-agent later**
-(`claude`, `codex`, `opencode auth login`, `hermes setup`, …), so **no
-credentials touch the repo**. Works from 2 GB VMs to workstations, LAN or cloud.
-> Note: `agy-cli`'s official install command wasn't confirmed at build time — its
-> role is a stub with a TODO (nothing installed) until you drop in the real command.
+(`claude`, `codex`, `opencode auth login`, `hermes setup`, `agy` Google sign-in),
+so **no credentials touch the repo**. Works from 2 GB VMs to workstations, LAN or cloud.
 
 ## Optional extras (chosen by the wizard, gated by resources)
 The installer only offers what the box can run, and the playbook double-checks
