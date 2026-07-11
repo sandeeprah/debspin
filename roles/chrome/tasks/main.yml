@@ -6,11 +6,19 @@
     mode: "0644"
   become: true
 
+# deb822 .sources file — apt_repository shells out to apt-key/gpg, gone from
+# minimal Debian 13+. Writing the file directly needs no gpg/apt-key.
 - name: Google Chrome apt repo
-  ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.asc] http://dl.google.com/linux/chrome/deb/ stable main"
-    filename: google-chrome
-    state: present
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/google-chrome.sources
+    mode: "0644"
+    content: |
+      Types: deb
+      URIs: http://dl.google.com/linux/chrome/deb/
+      Suites: stable
+      Components: main
+      Architectures: amd64
+      Signed-By: /usr/share/keyrings/google-chrome.asc
   become: true
 
 - name: Install google-chrome-stable
