@@ -46,6 +46,15 @@
     - xfce4-panel.xml      # stock top panel + centered dock
   become: true
 
+- name: Ensure the user's autostart dir exists
+  ansible.builtin.file:
+    path: "/home/{{ target_user }}/.config/autostart"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0700"
+  become: true
+
 - name: Disable xscreensaver autostart (belt-and-braces)
   ansible.builtin.copy:
     src: "autostart/xscreensaver.desktop"
