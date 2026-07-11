@@ -5,14 +5,19 @@ skills, MCP servers, and plugins — kept identical across every device.** It al
 sets up the substrate: a dark **Xfce desktop over xrdp**, runtimes, and the
 coding agents. Edit once, `git push`, and every machine converges. No secrets.
 
-### The core: manage skills + MCP + plugins across all machines
-Defined centrally in `group_vars/all.yml`, deployed by the **`agent-config`** role:
-- **Skills** → synced to `~/.claude/skills/` (static files, auto-discovered)
-- **MCP servers** → applied at user scope via `claude mcp add-json`; **keys stay
-  out** of the repo using `${ENV_VAR}` refs populated per device
-- **Plugins** → marketplaces + enabled map in `settings.json`, installed once
+### The core: manage skills + MCP + instructions across all machines *and agents*
+Defined once in `group_vars/all.yml`, deployed by the **`agent-config`** role to
+**Claude Code, opencode, and Codex** — from a single managed list:
+- **MCP servers** (the shared layer — MCP is an open standard) → translated into
+  each agent's config: Claude (`claude mcp add-json`, `${VAR}`), opencode
+  (`opencode.json`, `{env:VAR}`), Codex (`config.toml` via CLI). **Keys stay out**
+  of the repo — env-var refs, populated per device.
+- **Shared instructions** → one `AGENTS.md` deployed to every agent
+  (`~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`, `~/.codex/AGENTS.md`).
+- **Skills** → Claude Code `~/.claude/skills/` (Claude-specific format).
+- **Plugins** → Claude marketplaces + enabled map.
 
-Add an MCP server to your whole fleet = a one-line edit + `git push`.
+Add an MCP server to your whole fleet, on every agent = a one-line edit + `git push`.
 
 ```bash
 # on a fresh Debian — interactive, resource-aware wizard:
