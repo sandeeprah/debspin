@@ -1,0 +1,22 @@
+# vscode — VS Code (GUI editor on desktops; also hosts the Remote-SSH server & `code` CLI).
+- name: Microsoft signing key
+  ansible.builtin.get_url:
+    url: https://packages.microsoft.com/keys/microsoft.asc
+    dest: /usr/share/keyrings/microsoft.asc
+    mode: "0644"
+  become: true
+
+- name: VS Code apt repo
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/microsoft.asc] https://packages.microsoft.com/repos/code stable main"
+    filename: vscode
+    state: present
+  become: true
+
+- name: Install code
+  ansible.builtin.apt:
+    name: code
+    state: present
+    update_cache: true
+    install_recommends: no
+  become: true

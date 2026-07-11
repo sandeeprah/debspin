@@ -20,6 +20,15 @@ features:
   chrome: false
   docker: false
 
+# Coding agents — install only (auth is interactive per-agent; no secrets in repo).
+agents:
+  claude_code: false
+  codex: false
+  agy_cli: false
+  opencode: true      # sensible default
+  hermes: false
+  vscode: false
+
 # Resource floors — a role is skipped (with a warning) if the box is under these,
 # even if the feature was requested. Belt-and-braces on top of the wizard.
 min_mem_chrome_mb: 2800

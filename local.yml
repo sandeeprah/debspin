@@ -43,7 +43,20 @@
       when: is_laptop | bool
 
     - role: runtimes                                              # Python (uv) + Node (nvm)
-    - role: opencode                                             # open-source coding agent (keyless / interactive auth)
+
+    # --- coding agents: install only, gated by the checkbox choices ---
+    - role: claude-code
+      when: agents.claude_code | default(false) | bool
+    - role: codex
+      when: agents.codex | default(false) | bool
+    - role: agy-cli
+      when: agents.agy_cli | default(false) | bool
+    - role: opencode
+      when: agents.opencode | default(true) | bool
+    - role: hermes
+      when: agents.hermes | default(false) | bool
+    - role: vscode
+      when: agents.vscode | default(false) | bool
 
     # --- optional extras: run only if the feature is on AND the box can afford it ---
     - role: cli-tools
