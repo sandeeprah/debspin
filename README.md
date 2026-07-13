@@ -60,7 +60,10 @@ sudo ./debian-setup.sh --skip wifi        # all except this
 ```
 
 The script re-execs itself with `sudo` if you forget it. A full transcript
-(colours stripped) is appended to `setup_error.log` in the current directory.
+(colours stripped) is appended to `setup_error.log` in the current directory, and
+each run ends with a **SUMMARY** — the phases that completed plus every
+warning/failure collected in one place, and an overall **SUCCESS /
+COMPLETED-WITH-WARNINGS / FAILED** verdict — printed to both the console and the log.
 
 ### Configuration (environment variables)
 
