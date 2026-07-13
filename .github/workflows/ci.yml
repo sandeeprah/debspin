@@ -1,4 +1,4 @@
-name: test-bootstrap
+name: lint
 
 on:
   push:
@@ -6,41 +6,17 @@ on:
   pull_request:
 
 jobs:
-  static:
-    name: shellcheck + ansible syntax
+  shellcheck:
+    name: shellcheck + bash syntax
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: ShellCheck bootstrap + test harness
+      - name: bash syntax check
+        run: bash -n debian-setup.sh
+
+      - name: ShellCheck
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq shellcheck >/dev/null
-          shellcheck --severity=error bootstrap.sh test/test.sh
-
-      - name: Ansible playbook syntax-check
-        run: |
-          docker run --rm -v "$PWD:/debspin:ro" debian:13 bash -c '
-            set -e
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update -qq
-            apt-get install -y -qq ansible git >/dev/null
-            git config --global --add safe.directory /debspin
-            cd /debspin
-            ansible-playbook --syntax-check -i localhost, local.yml'
-
-  converge:
-    name: converge (${{ matrix.profile }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        profile: [headless, lean-desktop]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Bootstrap ${{ matrix.profile }}, end-to-end
-        run: |
-          # checkout leaves a detached HEAD; give ansible-pull a real branch
-          # to resolve (file:///debspin -C <branch>).
-          git checkout -B ci-test
-          ./test/test.sh --systemd ${{ matrix.profile }}
+          shellcheck --severity=error debian-setup.sh

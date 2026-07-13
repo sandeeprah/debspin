@@ -1,11 +1,11 @@
 # never commit secrets or local cruft
-*.vault
-vault.yml
 *.key
 *.pem
-*.retry
 .credentials.json
 auth.json
 rclone.conf
 __pycache__/
 *.pyc
+
+# debian-setup.sh transcript (lands next to where you run the script)
+setup_error.log
