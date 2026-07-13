@@ -63,6 +63,12 @@ SHARE_NAME="${SHARE_NAME:-share}"
 SHARE_PATH="${SHARE_PATH:-/srv/samba/${SHARE_NAME}}"
 WORKGROUP="${WORKGROUP:-WORKGROUP}"
 
+# xrdp: end a disconnected GUI *desktop* session this many seconds after the RDP
+# link drops, to free desktop RAM (0 = never, for a sticky workstation). SAFE —
+# real work runs in tmux / systemd user services (linger enabled by base), so
+# this only drops the Xfce shell, never your running work.
+XRDP_DISCONNECTED_TIMEOUT="${XRDP_DISCONNECTED_TIMEOUT:-600}"
+
 # nvm version to install and the Node.js line to install through it.
 NVM_VERSION="${NVM_VERSION:-v0.40.1}"
 NODE_VERSION="${NODE_VERSION:-22}"      # Node line nvm installs; '22' or '--lts'
@@ -142,6 +148,18 @@ backup_once() {   # one-time .orig backup
     if [[ -f "$f" && ! -f "${f}.orig" ]]; then
         cp -a "$f" "${f}.orig"
         info "backup: ${f}.orig"
+    fi
+}
+
+# Set key=value in an INI-style file: replace an existing (possibly commented-out)
+# key line in place, otherwise append it. Idempotent. Used for xrdp's sesman.ini.
+set_ini_key() {
+    local f="$1" k="$2" v="$3"
+    [[ -f "$f" ]] || return 1
+    if grep -qE "^[[:space:]]*#?[[:space:]]*${k}[[:space:]]*=" "$f"; then
+        sed -i -E "s|^[[:space:]]*#?[[:space:]]*(${k})[[:space:]]*=.*|\1=${v}|" "$f"
+    else
+        printf '%s=%s\n' "$k" "$v" >> "$f"
     fi
 }
 
@@ -479,11 +497,11 @@ install_agent_session() {
 #   agent-session -k NAME  kill session NAME
 # Detach and leave it running:  Ctrl-b  then  d   — then disconnect RDP freely.
 agent-session() {
-    if [ "$1" = "-k" ]; then
-        [ -z "$2" ] && { echo "usage: agent-session -k NAME"; return 1; }
+    if [ "${1:-}" = "-k" ]; then
+        [ -z "${2:-}" ] && { echo "usage: agent-session -k NAME"; return 1; }
         tmux kill-session -t "$2"; return
     fi
-    if [ -z "$1" ]; then
+    if [ -z "${1:-}" ]; then
         tmux ls 2>/dev/null || echo "no agent sessions running"; return
     fi
     tmux attach -t "$1" 2>/dev/null || tmux new -s "$1"
@@ -750,8 +768,23 @@ phase_share() {
     # --- xrdp ---
     log "Configuring xrdp..."
     adduser xrdp ssl-cert >/dev/null 2>&1 || true   # read TLS keys (ssl-cert group)
+
+    # Disconnect behavior: don't tear the GUI session down the instant the RDP
+    # link drops (so a brief network blip / deliberate disconnect keeps your
+    # desktop), then end it after a grace period to reclaim RAM. Real work lives
+    # in tmux / systemd user services (linger), so only the Xfce shell is at risk.
+    local sesman=/etc/xrdp/sesman.ini
+    if [[ -f "$sesman" ]]; then
+        backup_once "$sesman"
+        set_ini_key "$sesman" KillDisconnected false
+        set_ini_key "$sesman" DisconnectedTimeLimit "$XRDP_DISCONNECTED_TIMEOUT"
+        info "xrdp: KillDisconnected=false, DisconnectedTimeLimit=${XRDP_DISCONNECTED_TIMEOUT}s (0=never)"
+    fi
+
     systemctl enable --now xrdp >/dev/null 2>&1 || true
     systemctl enable --now xrdp-sesman >/dev/null 2>&1 || true
+    # Pick up sesman.ini changes if the services were already running (re-run).
+    systemctl try-restart xrdp xrdp-sesman >/dev/null 2>&1 || true
 
     # --- Samba share ---
     log "Creating shared folder at ${SHARE_PATH}..."
