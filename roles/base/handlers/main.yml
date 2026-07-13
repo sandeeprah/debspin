@@ -1,5 +1,0 @@
-- name: restart zramswap
-  ansible.builtin.systemd:
-    name: zramswap
-    state: restarted
-  become: true
