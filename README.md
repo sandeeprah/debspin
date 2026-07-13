@@ -42,7 +42,7 @@ Run in this order by default. Pick a subset with `--only` / `--skip`.
 | Phase | What it sets up |
 |---|---|
 | `base` | Repairs apt sources (disables cdrom-only, points at `deb.debian.org`), then installs what a minimal install lacks: curl/wget, net-tools + iproute2, DNS/diagnostic tools, git, jq, build-essential, editors, **Noto fonts** (Hindi/CJK/emoji), **Node.js/npm + nvm**, and **tmux** with an [`agent-session`](#the-agent-session-helper) helper. Enables **lingering** so detached work survives logout. **Must run first.** |
-| `containers` | **podman** (rootless-ready: uidmap, passt/slirp4netns, fuse-overlayfs) and **docker** (docker.io + daemon); adds you to the `docker` group. |
+| `containers` | **podman** (rootless-ready: uidmap, passt/slirp4netns, fuse-overlayfs) and **docker** (engine + `docker` CLI + **compose v2**); adds you to the `docker` group. |
 | `wifi` | Hands WiFi to **NetworkManager** cleanly (tray applet works, no ifupdown boot race); installs `lxpolkit` + a polkit rule so connecting needs no password. |
 | `audio` | **PipeWire** + `pipewire-module-xrdp` so xrdp session audio plays on the RDP *client*. |
 | `share` | Remote desktop (**xrdp**) + file sharing (**Samba**) + discovery (**Avahi** `.local`, **wsdd** for Windows "Network") + `ufw` rules. |

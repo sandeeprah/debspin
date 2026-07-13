@@ -14,7 +14,7 @@
 #            curl/wget, net-tools (ifconfig), iproute2 (ip), DNS + diagnostic
 #            tools, git, jq, build-essential, editors, Noto fonts (full script
 #            coverage — Hindi/CJK/emoji), plus Node.js/npm (apt) and nvm
-#            (per-user, latest LTS). Also installs tmux and an 'agent-session'
+#            (per-user, Node 22 by default). Also installs tmux and an 'agent-session'
 #            shell helper so long-running work survives xrdp disconnects (and,
 #            with lingering enabled here, needs no active login at all). MUST
 #            run first — later phases and nvm itself need curl/ca-certificates.
@@ -65,7 +65,7 @@ WORKGROUP="${WORKGROUP:-WORKGROUP}"
 
 # nvm version to install and the Node.js line to install through it.
 NVM_VERSION="${NVM_VERSION:-v0.40.1}"
-NODE_VERSION="${NODE_VERSION:---lts}"   # '--lts' or a specific version e.g. '22'
+NODE_VERSION="${NODE_VERSION:-22}"      # Node line nvm installs; '22' or '--lts'
 
 # ============================================================================
 # Internals
@@ -399,8 +399,14 @@ phase_containers() {
     # fuse-overlayfs lets an unprivileged user run networked containers.
     apt_install podman uidmap passt slirp4netns fuse-overlayfs
 
-    # docker engine (Debian's docker.io) + daemon.
-    apt_install docker.io
+    # docker engine (docker.io daemon) + docker-cli (the `docker` client — a
+    # SEPARATE package since Debian trixie, and only a Recommends of docker.io,
+    # so it must be named explicitly under --no-install-recommends) + compose v2
+    # (Debian's docker-compose 2.x installs the `docker compose` cli-plugin AND
+    # a standalone /usr/bin/docker-compose). NB: there is NO docker-compose-v2
+    # package on trixie. On older releases docker-cli/docker-compose may be
+    # absent — apt_install just warns and docker.io still provides the client.
+    apt_install docker.io docker-cli docker-compose
 
     systemctl enable --now docker >/dev/null 2>&1 || \
         warn "could not start docker service (fine inside a container/chroot)."
@@ -423,6 +429,7 @@ phase_containers() {
     log "containers done"
     info "podman : $(command -v podman >/dev/null 2>&1 && podman --version || echo 'not on PATH')"
     info "docker : $(command -v docker >/dev/null 2>&1 && docker --version || echo 'not on PATH')"
+    info "compose: $(command -v docker >/dev/null 2>&1 && docker compose version 2>/dev/null | head -1 || echo 'not available')"
 }
 
 install_extras_shims() {
