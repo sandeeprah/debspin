@@ -54,8 +54,10 @@ TARGET_USER="${TARGET_USER:-${SUDO_USER:-$(id -un)}}"
 # WiFi interface for the 'wifi' phase. Empty = auto-detect all wireless devices.
 WIFI_IFACE="${WIFI_IFACE:-}"
 
-# Full transcript (stdout+stderr) is appended here. ANSI colours are stripped
-# from the file but kept on the console. Override with LOG_FILE=/path env var.
+# Full transcript (stdout+stderr) is appended here, and the run ends with a
+# SUMMARY block listing the phases that completed and every warning/failure, plus
+# an overall SUCCESS / COMPLETED-WITH-WARNINGS / FAILED verdict — in the file and
+# on the console. ANSI colours are stripped from the file. Override LOG_FILE=/path.
 LOG_FILE="${LOG_FILE:-setup_error.log}"
 
 # Samba share (generic; not machine-specific).
@@ -81,10 +83,45 @@ STAMP="$(date +%Y%m%d-%H%M%S)"
 SMB_CONF="/etc/samba/smb.conf"
 NM_CONF="/etc/NetworkManager/NetworkManager.conf"
 
+# Run summary state. warn() collects every non-fatal issue and die() records the
+# fatal one, so the end-of-run summary can list exactly what failed alongside the
+# phases that completed — see print_summary().
+WARNINGS=()
+COMPLETED_PHASES=()
+FATAL=""
+
 log()  { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
 info() { printf '    %s\n' "$*"; }
-warn() { printf '\033[1;33m warn:\033[0m %s\n' "$*" >&2; }
-die()  { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+warn() { WARNINGS+=("$*"); printf '\033[1;33m warn:\033[0m %s\n' "$*" >&2; }
+die()  { FATAL="$*"; print_summary; printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# End-of-run roll-up: what completed (success) and every warning/failure, with an
+# overall verdict. Printed to the console AND the transcript (LOG_FILE).
+print_summary() {
+    [[ -n "${SUMMARY_DONE:-}" ]] && return 0   # print once (explicit call + EXIT trap)
+    SUMMARY_DONE=1
+    echo
+    log "===================== SUMMARY ====================="
+    info "Phases requested : ${PHASES[*]:-(none)}"
+    info "Phases completed : ${COMPLETED_PHASES[*]:-(none)}"
+    if [[ ${#WARNINGS[@]} -eq 0 && -z "$FATAL" ]]; then
+        log "Result: SUCCESS — all requested phases completed, no warnings."
+    else
+        if [[ ${#WARNINGS[@]} -gt 0 ]]; then
+            printf '\033[1;33m==> Warnings / failures (%d):\033[0m\n' "${#WARNINGS[@]}" >&2
+            local w
+            for w in "${WARNINGS[@]}"; do printf '      - %s\n' "$w" >&2; done
+        fi
+        if [[ -n "$FATAL" ]]; then
+            printf '\033[1;31m==> FATAL: %s\033[0m\n' "$FATAL" >&2
+            log "Result: FAILED — aborted before finishing (see FATAL above)."
+        else
+            log "Result: COMPLETED WITH ${#WARNINGS[@]} WARNING(S) — review the list above."
+        fi
+    fi
+    [[ -n "${LOG_FILE:-}" ]] && log "Full transcript: ${LOG_FILE}"
+    log "==================================================="
+}
 
 usage() {
     sed -n '3,45p' "$0" | sed 's/^# \{0,1\}//'
@@ -915,6 +952,11 @@ log "Target user : ${TARGET_USER}"
 log "Phases      : ${PHASES[*]}"
 echo
 
+# Safety net: if a phase hard-aborts (an unguarded command under 'set -e'), still
+# print the summary — with the failure flagged — before the shell exits. On the
+# normal path print_summary() is called explicitly below and this trap is a no-op.
+trap 'rc=$?; if [[ $rc -ne 0 && -z "$FATAL" ]]; then FATAL="aborted (exit $rc) — see the last command logged above"; fi; print_summary' EXIT
+
 for phase in "${PHASES[@]}"; do
     case "$phase" in
         base)       phase_base       ;;
@@ -923,11 +965,11 @@ for phase in "${PHASES[@]}"; do
         audio)      phase_audio      ;;
         share)      phase_share      ;;
     esac
+    COMPLETED_PHASES+=("$phase")   # reached only if the phase didn't hard-abort
     echo
 done
 
-log "All requested phases complete: ${PHASES[*]}"
-[[ -f "$LOG_FILE" ]] && log "Full transcript saved to ${LOG_FILE}"
+print_summary
 
 # Restore the console fds, closing the pipe to tee so it flushes and exits
 # cleanly. (Do NOT 'wait' on the tee here — while our stdout still points at the
