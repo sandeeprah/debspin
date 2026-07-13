@@ -14,8 +14,10 @@
 #            curl/wget, net-tools (ifconfig), iproute2 (ip), DNS + diagnostic
 #            tools, git, jq, build-essential, editors, Noto fonts (full script
 #            coverage — Hindi/CJK/emoji), plus Node.js/npm (apt) and nvm
-#            (per-user, latest LTS). MUST run first — later phases and nvm
-#            itself need curl/ca-certificates.
+#            (per-user, latest LTS). Also installs tmux and an 'agent-session'
+#            shell helper so long-running work survives xrdp disconnects (and,
+#            with lingering enabled here, needs no active login at all). MUST
+#            run first — later phases and nvm itself need curl/ca-certificates.
 #     containers
 #            Install container engines: podman (rootless-ready: uidmap,
 #            slirp4netns, fuse-overlayfs) and docker (docker.io + daemon), and
@@ -353,7 +355,7 @@ phase_base() {
 
     # General dev / everyday CLI.
     apt_install build-essential git jq unzip zip tar rsync tree htop \
-                vim nano less bash-completion man-db
+                tmux vim nano less bash-completion man-db
 
     # Fonts — Google Noto ("no tofu") for full script coverage so non-Latin
     # text (Hindi/Devanagari and other Indic scripts, Arabic, Thai, Hebrew, ...)
@@ -369,7 +371,7 @@ phase_base() {
     # Extras — modern CLI, TUIs and inspection tools worth having everywhere.
     # Note the Debian-renamed binaries: fd-find -> 'fdfind', bat -> 'batcat',
     # ripgrep -> 'rg'. Handled below with per-user aliases + a system 'fd' shim.
-    apt_install_optional tmux screen ncdu btop ripgrep fd-find bat \
+    apt_install_optional screen ncdu btop ripgrep fd-find bat \
                 dmidecode lshw lm-sensors python3-pip pipx yq \
                 software-properties-common
 
@@ -378,6 +380,7 @@ phase_base() {
     install_node_npm
 
     install_extras_shims
+    install_agent_session
     install_nvm
 
     log "base done"
@@ -434,6 +437,65 @@ install_extras_shims() {
             info "linked ${dst} -> ${src}"
         fi
     done
+}
+
+# Install the system-wide 'agent-session' shell helper: run/resume long-lived
+# work inside tmux so it survives xrdp disconnect/reconnect. Combined with
+# lingering (enabled below), the work keeps running even with NO active login —
+# reattach later over RDP *or* plain SSH with 'agent-session NAME'.
+#
+# The helper is written to /etc/bash.bashrc (not /etc/profile.d) on purpose:
+#   * bash sources /etc/bash.bashrc for interactive non-login shells (the XFCE
+#     terminal case), and Debian's /etc/profile sources it for bash login shells
+#     too — so both paths get the function from ONE place.
+#   * /etc/profile.d/*.sh is also sourced by dash (sh login shells), where a
+#     function name containing '-' is a syntax error and would break login.
+#     Keeping this in the bash-only file sidesteps that hazard entirely.
+# Idempotent: a marked block is removed and rewritten on every run.
+install_agent_session() {
+    local brc="/etc/bash.bashrc"
+    local BEGIN="# >>> debian-setup.sh agent-session >>>"
+    local END="# <<< debian-setup.sh agent-session <<<"
+
+    if [[ ! -f "$brc" ]]; then
+        warn "no ${brc}; skipping agent-session helper"
+    else
+        backup_once "$brc"
+        sed -i "/${BEGIN}/,/${END}/d" "$brc"          # drop any prior block
+        {
+            printf '%s\n' "$BEGIN"
+            cat <<'HELPER'
+# agent-session — run/resume detached work in tmux so it survives xrdp
+# disconnects (with lingering on, it needs no active login at all).
+#   agent-session          list running sessions
+#   agent-session NAME     attach to NAME, or create it if it doesn't exist
+#   agent-session -k NAME  kill session NAME
+# Detach and leave it running:  Ctrl-b  then  d   — then disconnect RDP freely.
+agent-session() {
+    if [ "$1" = "-k" ]; then
+        [ -z "$2" ] && { echo "usage: agent-session -k NAME"; return 1; }
+        tmux kill-session -t "$2"; return
+    fi
+    if [ -z "$1" ]; then
+        tmux ls 2>/dev/null || echo "no agent sessions running"; return
+    fi
+    tmux attach -t "$1" 2>/dev/null || tmux new -s "$1"
+}
+_agent_session_complete() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    COMPREPLY=( $(compgen -W "$(tmux ls -F '#S' 2>/dev/null)" -- "$cur") )
+}
+complete -F _agent_session_complete agent-session 2>/dev/null || true
+HELPER
+            printf '%s\n' "$END"
+        } >> "$brc"
+        info "installed agent-session helper in ${brc}"
+    fi
+
+    # Let the target user's tmux server (and its work) live on with no active
+    # session — the whole point of detaching before an xrdp disconnect.
+    [[ -n "$TARGET_UID" ]] && loginctl enable-linger "${TARGET_USER}" >/dev/null 2>&1 \
+        && info "lingering enabled for ${TARGET_USER}" || true
 }
 
 # Install Node.js + npm system-wide without ever aborting the run.
