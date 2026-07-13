@@ -73,7 +73,8 @@ Everything is a safe generic default; override by exporting before the run.
 | `SHARE_NAME` | `share` | Samba share name |
 | `SHARE_PATH` | `/srv/samba/<name>` | Samba share directory |
 | `WORKGROUP` | `WORKGROUP` | SMB workgroup |
-| `NODE_VERSION` | `--lts` | Node line nvm installs (`--lts` or e.g. `22`) |
+| `NODE_VERSION` | `22` | Node line nvm installs (`22` or `--lts`) |
+| `XRDP_DISCONNECTED_TIMEOUT` | `600` | seconds before a disconnected RDP desktop session ends (`0` = never) |
 | `LOG_FILE` | `setup_error.log` | transcript path |
 
 ```bash
@@ -110,6 +111,12 @@ independent of whatever xrdp does with the GUI session.
 
 The box announces itself over mDNS (`<host>.local`) and WS-Discovery (shows up in
 the Windows "Network" view).
+
+**Disconnecting:** the `share` phase sets xrdp to *keep* your desktop session when
+the RDP link drops and only end it after `XRDP_DISCONNECTED_TIMEOUT` seconds
+(default 600, `0` = never) — so a brief blip or a deliberate disconnect doesn't
+lose your desktop. Long-running work should still go in
+[`agent-session`](#the-agent-session-helper) / tmux, which survives regardless.
 
 ---
 
@@ -160,7 +167,9 @@ exit                                    # back to your user
 `sudo` + `curl` — skip this.) The `base` phase repairs apt sources itself, so
 even if you skip the mirror line above, the first run will fix `sources.list`.
 
-## CI
+## Testing & CI
 
 `.github/workflows/ci.yml` runs `bash -n` + `shellcheck` on `debian-setup.sh` on
-every push/PR.
+every push/PR. For running the phases end-to-end — container recipes for
+`base`/`containers` and a VM checklist for the desktop phases — see
+[`TESTING.md`](TESTING.md).
